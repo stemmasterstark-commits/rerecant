@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
 import { supabase } from "../services/supabase";
 import AuthModal from "./AuthModal";
 
-export default function Navbar({ cartCount = 0 }) {
+export default function Navbar({ activePage = "home", setActivePage, cartCount = 0 }) {
   const [user, setUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
-    // 1. Get initial session/user
+    // 1. Check current logged-in user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
-    // 2. Listen for auth changes (Login / Logout)
+    // 2. Listen for login / logout state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -30,49 +28,50 @@ export default function Navbar({ cartCount = 0 }) {
     await supabase.auth.signOut();
   };
 
-  const isActive = (path) => location.pathname === path;
-
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-gray-900 tracking-tight">
+          <div 
+            onClick={() => setActivePage && setActivePage("home")}
+            className="flex items-center gap-2 text-xl font-extrabold text-gray-900 tracking-tight cursor-pointer"
+          >
             <span className="text-2xl">🛒</span>
-            <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
               ReReCant
             </span>
-          </Link>
+          </div>
 
-          {/* Navigation Links */}
+          {/* Navigation Items */}
           <nav className="flex items-center gap-1 sm:gap-6">
-            <Link
-              to="/"
+            <button
+              onClick={() => setActivePage && setActivePage("home")}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive("/") 
+                activePage === "home" 
                   ? "text-indigo-600 bg-indigo-50" 
                   : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
               }`}
             >
               Home
-            </Link>
+            </button>
 
-            <Link
-              to="/orders"
+            <button
+              onClick={() => setActivePage && setActivePage("orders")}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive("/orders") 
+                activePage === "orders" 
                   ? "text-indigo-600 bg-indigo-50" 
                   : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
               }`}
             >
               Orders
-            </Link>
+            </button>
 
-            <Link
-              to="/cart"
+            <button
+              onClick={() => setActivePage && setActivePage("cart")}
               className={`relative px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                isActive("/cart") 
+                activePage === "cart" 
                   ? "text-indigo-600 bg-indigo-50" 
                   : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
               }`}
@@ -83,7 +82,7 @@ export default function Navbar({ cartCount = 0 }) {
                   {cartCount}
                 </span>
               )}
-            </Link>
+            </button>
           </nav>
 
           {/* Auth Section */}
@@ -114,7 +113,7 @@ export default function Navbar({ cartCount = 0 }) {
         </div>
       </header>
 
-      {/* Auth Modal Component */}
+      {/* Login / Sign Up Modal */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
