@@ -7,12 +7,12 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
-    // 1. Check current logged-in user
+    // 1. Get initial user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
-    // 2. Listen for login / logout state changes
+    // 2. Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -28,6 +28,12 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
     await supabase.auth.signOut();
   };
 
+  const navTo = (page) => {
+    if (setActivePage) {
+      setActivePage(page);
+    }
+  };
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
@@ -35,7 +41,7 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
           
           {/* Logo */}
           <div 
-            onClick={() => setActivePage && setActivePage("home")}
+            onClick={() => navTo("home")}
             className="flex items-center gap-2 text-xl font-extrabold text-gray-900 tracking-tight cursor-pointer"
           >
             <span className="text-2xl">🛒</span>
@@ -44,10 +50,11 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
             </span>
           </div>
 
-          {/* Navigation Items */}
+          {/* Navigation Links */}
           <nav className="flex items-center gap-1 sm:gap-6">
             <button
-              onClick={() => setActivePage && setActivePage("home")}
+              type="button"
+              onClick={() => navTo("home")}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activePage === "home" 
                   ? "text-indigo-600 bg-indigo-50" 
@@ -58,7 +65,8 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
             </button>
 
             <button
-              onClick={() => setActivePage && setActivePage("orders")}
+              type="button"
+              onClick={() => navTo("orders")}
               className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activePage === "orders" 
                   ? "text-indigo-600 bg-indigo-50" 
@@ -69,7 +77,8 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
             </button>
 
             <button
-              onClick={() => setActivePage && setActivePage("cart")}
+              type="button"
+              onClick={() => navTo("cart")}
               className={`relative px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
                 activePage === "cart" 
                   ? "text-indigo-600 bg-indigo-50" 
@@ -94,6 +103,7 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
                   {user.email?.split("@")[0]}
                 </span>
                 <button
+                  type="button"
                   onClick={handleLogout}
                   className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors pl-1 border-l border-gray-200"
                 >
@@ -102,6 +112,7 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
               </div>
             ) : (
               <button
+                type="button"
                 onClick={() => setIsAuthOpen(true)}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-indigo-100 hover:shadow-indigo-200 transition-all active:scale-95"
               >
@@ -113,7 +124,7 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
         </div>
       </header>
 
-      {/* Login / Sign Up Modal */}
+      {/* Auth Modal */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
