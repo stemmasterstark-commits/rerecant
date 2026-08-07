@@ -9,7 +9,7 @@ export default function Cart({
 }) {
   const [loading, setLoading] = useState(false);
 
-  // Stepper logic inside Cart
+  // Stepper quantity update logic
   const updateQuantity = (id, newQuantity) => {
     setCartItems((prev) =>
       prev
@@ -39,37 +39,88 @@ export default function Cart({
     0
   );
 
-  // Direct Checkout Handler: Updates stock in `products` table directly
+  // Update Supabase product stock after successful Razorpay payment
+  const updateDatabaseStock = async () => {
+    for (const item of cartItems) {
+      const currentStock =
+        typeof item.stock === "number"
+          ? item.stock
+          : Number(item.stock || 0);
+
+      const updatedStock = Math.max(0, currentStock - item.quantity);
+
+      const { error } = await supabase
+        .from("products")
+        .update({ stock: updatedStock })
+        .eq("id", item.id);
+
+      if (error) {
+        console.error(`Failed to update stock for ${item.name}:`, error);
+      }
+    }
+  };
+
+  // Razorpay Checkout Handler
   const handleCheckout = async () => {
+    if (typeof window.Razorpay === "undefined") {
+      alert("Razorpay SDK is not loaded. Please ensure the Razorpay script is in your index.html.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // 1. Deduct quantity directly from the `products` table in Supabase
-      for (const item of cartItems) {
-        const currentStock =
-          typeof item.stock === "number"
-            ? item.stock
-            : Number(item.stock || 0);
+      const { data: { user } } = await supabase.auth.getUser();
 
-        const updatedStock = Math.max(0, currentStock - item.quantity);
+      const options = {
+        // Uses Vite environment variable if available, otherwise falls back to your Key ID
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "YOUR_RAZORPAY_KEY_ID", 
+        amount: totalAmount * 100, // Amount in paise
+        currency: "INR",
+        name: "ReReCant Canteen",
+        description: "Order Payment",
+        image: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
+        handler: async function (response) {
+          try {
+            console.log("Payment successful:", response.razorpay_payment_id);
 
-        const { error } = await supabase
-          .from("products")
-          .update({ stock: updatedStock })
-          .eq("id", item.id);
+            // 1. Update stock in Supabase database
+            await updateDatabaseStock();
 
-        if (error) {
-          console.error(`Failed to update stock for ${item.name}:`, error);
-          throw new Error(`Could not update stock for ${item.name}`);
-        }
-      }
+            alert("🎉 Payment successful & stock updated!");
+            clearCart();
+            if (setActivePage) setActivePage("orders");
+          } catch (err) {
+            console.error("Error updating stock after payment:", err);
+            alert("Payment went through, but stock update failed.");
+          } finally {
+            setLoading(false);
+          }
+        },
+        prefill: {
+          name: user?.user_metadata?.full_name || "Student User",
+          email: user?.email || "student@example.com",
+        },
+        theme: {
+          color: "#059669",
+        },
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+      };
 
-      alert("🎉 Order placed successfully! Product stock has been updated.");
-      clearCart();
-      if (setActivePage) setActivePage("grocery");
+      const razorpayInstance = new window.Razorpay(options);
+
+      razorpayInstance.on("payment.failed", function (response) {
+        alert(`Payment Failed: ${response.error.description}`);
+        setLoading(false);
+      });
+
+      razorpayInstance.open();
     } catch (err) {
-      alert(`Checkout failed: ${err.message}`);
-    } finally {
+      alert(`Checkout error: ${err.message}`);
       setLoading(false);
     }
   };
@@ -117,9 +168,8 @@ export default function Cart({
               key={item.id}
               className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4"
             >
-              {/* Image & Title */}
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
+                <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden shrink-0 border border-gray-100">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
@@ -142,7 +192,7 @@ export default function Cart({
                 </div>
               </div>
 
-              {/* Stepper Controls & Price */}
+              {/* Stepper Controls */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button
@@ -182,7 +232,7 @@ export default function Cart({
           onClick={handleCheckout}
           className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 disabled:opacity-50"
         >
-          {loading ? "Updating Inventory..." : "Proceed to Checkout"}
+          {loading ? "Opening Razorpay..." : "Proceed to Checkout"}
         </button>
       </div>
     </div>
