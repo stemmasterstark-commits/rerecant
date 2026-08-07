@@ -5,11 +5,10 @@ export default function ProductCard({
   cartItems = [],
   setCartItems,
 }) {
-  // Extract numerical stock safely
-  const rawStock = product.stock ?? product.available_stock ?? product.inventory ?? 99;
-  const stockLimit = Number(rawStock);
+  // STRICT: Read exact 'stock' column from Supabase table. Default to 0 if missing.
+  const stockLimit = typeof product.stock === "number" ? product.stock : Number(product.stock || 0);
 
-  // Check current item quantity in cart
+  // Check how many units of this item are currently in user's cart
   const inCartItem = cartItems.find((item) => item.id === product.id);
   const currentInCartCount = inCartItem ? inCartItem.quantity : 0;
 
@@ -73,7 +72,7 @@ export default function ProductCard({
         {/* Product Title */}
         <h3 className="font-bold text-gray-800 text-base mb-1">{product.name}</h3>
 
-        {/* Stock Badge */}
+        {/* Real DB Stock Badge */}
         <div className="flex items-center gap-1.5 mb-3">
           <span
             className={`w-2 h-2 rounded-full ${
@@ -102,7 +101,7 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* Price & Counter / Add Button */}
+      {/* Price & Stepper Button */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
         <span className="text-lg font-black text-emerald-600">
           ₹{product.price}
@@ -116,9 +115,10 @@ export default function ProductCard({
             Out of Stock
           </button>
         ) : currentInCartCount > 0 ? (
-          /* Plus/Minus Stepper Controls on Product Card */
+          /* Plus/Minus Stepper Controls */
           <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden shadow-sm">
             <button
+              type="button"
               onClick={handleDecrease}
               className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black text-sm transition-all"
             >
@@ -128,6 +128,7 @@ export default function ProductCard({
               {currentInCartCount}
             </span>
             <button
+              type="button"
               disabled={isMaxReached}
               onClick={handleIncrease}
               className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"

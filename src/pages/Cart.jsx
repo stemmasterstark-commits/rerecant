@@ -9,18 +9,16 @@ export default function Cart({
 }) {
   const [loading, setLoading] = useState(false);
 
-  // Stepper logic inside Cart
+  // Stepper logic inside Cart strictly referencing item.stock
   const updateQuantity = (id, newQuantity) => {
     setCartItems((prev) =>
       prev
         .map((item) => {
           if (item.id === id) {
-            const rawStock =
-              item.stock ?? item.available_stock ?? item.inventory ?? 99;
-            const maxStock = Number(rawStock);
+            const maxStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
 
             if (newQuantity > maxStock) {
-              alert(`Only ${maxStock} units available in stock!`);
+              alert(`Only ${maxStock} units of "${item.name}" available in stock!`);
               return { ...item, quantity: maxStock };
             }
             return { ...item, quantity: newQuantity };
@@ -51,7 +49,7 @@ export default function Cart({
       }
 
       // 1. Insert order into Supabase
-      const { data: orderData, error: orderError } = await supabase
+      const { error: orderError } = await supabase
         .from("orders")
         .insert([
           {
@@ -61,17 +59,14 @@ export default function Cart({
             items: cartItems,
             payment_id: "pay_test_" + Math.random().toString(36).substring(7),
           },
-        ])
-        .select()
-        .single();
+        ]);
 
       if (orderError) throw orderError;
 
-      // 2. Decrement Database Stock for each item
+      // 2. Decrement Database Stock strictly for each item
       for (const item of cartItems) {
-        const rawStock =
-          item.stock ?? item.available_stock ?? item.inventory ?? 99;
-        const newStock = Math.max(0, Number(rawStock) - item.quantity);
+        const currentStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
+        const newStock = Math.max(0, currentStock - item.quantity);
 
         await supabase
           .from("products")
@@ -119,12 +114,10 @@ export default function Cart({
         </button>
       </div>
 
-      {/* Cart Items List with Product Thumbnails */}
+      {/* Cart Items List */}
       <div className="space-y-3">
         {cartItems.map((item) => {
-          const rawStock =
-            item.stock ?? item.available_stock ?? item.inventory ?? 99;
-          const maxStock = Number(rawStock);
+          const maxStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
 
           return (
             <div
