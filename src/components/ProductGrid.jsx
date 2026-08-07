@@ -26,18 +26,17 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
   const handleAddToCart = (product) => {
     if (!setCartItems) return;
 
-    // 1. Find how many of this product are already in the cart
     const existingInCart = cartItems.find((item) => item.id === product.id);
     const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
+    const availableStock = Number(product.stock ?? 0);
 
-    // 2. Check if adding one more exceeds available stock
-    if (currentQtyInCart >= product.stock) {
-      setToastMessage(`⚠️ Cannot add more! Maximum available stock is ${product.stock}.`);
+    // Hard Stop Check
+    if (currentQtyInCart >= availableStock) {
+      setToastMessage(`⚠️ Cannot add more! Maximum available stock is ${availableStock}.`);
       setTimeout(() => setToastMessage(""), 2500);
       return;
     }
 
-    // 3. Increment quantity safely
     setCartItems((prevCart) => {
       const existing = prevCart.find((item) => item.id === product.id);
       if (existing) {
@@ -50,7 +49,6 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
       return [...prevCart, { ...product, quantity: 1 }];
     });
 
-    // 4. Show Success Toast Notification
     setToastMessage(`Added "${product.name}" to your cart! 🛒`);
     setTimeout(() => setToastMessage(""), 2500);
   };
@@ -77,15 +75,15 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
           <ProductCard
             key={product.id}
             product={product}
+            cartItems={cartItems}
             onAddToCart={handleAddToCart}
           />
         ))}
       </div>
 
-      {/* Floating Add to Cart Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-emerald-500 animate-bounce">
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-800 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-xl border border-emerald-600 animate-bounce">
+          {toastMessage}
         </div>
       )}
     </div>

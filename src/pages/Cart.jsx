@@ -9,26 +9,22 @@ export default function Cart({ cartItems = [], setCartItems, clearCart, setActiv
   const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   const updateQuantity = (id, newQuantity) => {
-    if (newQuantity <= 0) {
-      // Remove item if quantity becomes 0
-      setCartItems((prev) => prev.filter((item) => item.id !== id));
-      return;
-    }
-
-    setCartItems((prev) =>
-      prev.map((item) => {
+  setCartItems((prev) =>
+    prev
+      .map((item) => {
         if (item.id === id) {
-          // Prevent increasing beyond database stock
-          if (newQuantity > item.stock) {
-            alert(`Sorry, only ${item.stock} units of ${item.name} are available in stock.`);
-            return item;
+          const maxStock = Number(item.stock ?? 0);
+          if (newQuantity > maxStock) {
+            alert(`Sorry, only ${maxStock} units of "${item.name}" are in stock!`);
+            return { ...item, quantity: maxStock };
           }
           return { ...item, quantity: newQuantity };
         }
         return item;
       })
-    );
-  };
+      .filter((item) => item.quantity > 0)
+  );
+};
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
