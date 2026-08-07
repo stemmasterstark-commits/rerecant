@@ -5,38 +5,37 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../services/supabase";
 
 export default function Cart({ onNavigate }) {
-  const { cart, updateQuantity, removeFromCart, clearCart, totalPrice, totalItems } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart, totalPrice } = useCart();
   const { user, loginWithPhone, markOrderCompleted } = useAuth();
 
-  // Auth & OTP states
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState("cart"); // 'cart' | 'phone' | 'otp' | 'success'
   const [lastOrderDetails, setLastOrderDetails] = useState(null);
 
-  // 1. Trigger Razorpay Checkout
+  // Trigger Razorpay Checkout Modal directly on frontend
   const handleRazorpayPayment = async () => {
     if (!window.Razorpay) {
-      alert("Razorpay SDK failed to load. Please check your internet connection.");
+      alert("Razorpay SDK failed to load. Please refresh the page.");
       return;
     }
 
     const options = {
-      key: "YOUR_RAZORPAY_KEY_ID", // Replace with your Razorpay Key ID (e.g., rzp_test_xxxx)
+      key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_TMq8V3xUQPaCWC",
       amount: totalPrice * 100, // Amount in paise
       currency: "INR",
       name: "ReReCant",
-      description: "Canteen Order Payment",
+      description: "Night Canteen Order",
       image: "https://via.placeholder.com/150",
       handler: async function (response) {
-        // Payment Succeeded!
+        // Called on successful payment
         await processSuccessfulOrder(response.razorpay_payment_id);
       },
       prefill: {
         contact: user?.phone || phone,
       },
       theme: {
-        color: "#16a34a", // Canteen green
+        color: "#16a34a",
       },
     };
 
@@ -44,7 +43,7 @@ export default function Cart({ onNavigate }) {
     paymentObject.open();
   };
 
-  // 2. Process Order, Update Supabase Stock, Record Order History
+  // Process order, decrement Supabase stock, and save order record
   const processSuccessfulOrder = async (paymentId) => {
     const orderTimestamp = new Date().toISOString();
 
@@ -57,7 +56,7 @@ export default function Cart({ onNavigate }) {
     };
 
     try {
-      // A. Decrement Stock in Supabase
+      // 1. Decrement Stock in Supabase
       for (const item of cart) {
         const remainingStock = Math.max(0, (item.quantity ?? 0) - item.cartQuantity);
         await supabase
@@ -66,7 +65,7 @@ export default function Cart({ onNavigate }) {
           .eq("id", item.id);
       }
 
-      // B. Insert into Supabase Orders table
+      // 2. Insert into Supabase Orders table
       await supabase.from("orders").insert([
         {
           items: cart,
@@ -76,10 +75,10 @@ export default function Cart({ onNavigate }) {
         },
       ]);
     } catch (e) {
-      console.error("Order database logging error:", e);
+      console.error("Database order log error:", e);
     }
 
-    // C. Store order locally for user history
+    // 3. Save locally for user history
     const userPhoneKey = `user_orders_${user?.phone || phone}`;
     const userOrders = JSON.parse(localStorage.getItem(userPhoneKey) || "[]");
     localStorage.setItem(userPhoneKey, JSON.stringify([orderData, ...userOrders]));
@@ -90,10 +89,10 @@ export default function Cart({ onNavigate }) {
     setStep("success");
   };
 
-  // 3. Phone OTP Verification Mock Logic
+  // OTP Login Mock Handlers
   const handleSendOtp = (e) => {
     e.preventDefault();
-    if (phone.length < 10) return alert("Please enter a valid 10-digit mobile number");
+    if (phone.length < 10) return alert("Enter valid 10-digit mobile number");
     setStep("otp");
   };
 
@@ -114,7 +113,6 @@ export default function Cart({ onNavigate }) {
           <span>🛒</span> Your Cart
         </h1>
 
-        {/* ORDER SUCCESS PAGE WITH SMART DELIVERY INSTRUCTIONS */}
         {step === "success" ? (
           <div className="bg-white rounded-3xl p-8 border border-gray-200 shadow-lg text-center space-y-6">
             <div className="text-6xl animate-bounce">🎉</div>
@@ -123,7 +121,6 @@ export default function Cart({ onNavigate }) {
               Payment ID: <span className="text-green-700">{lastOrderDetails?.id}</span>
             </p>
 
-            {/* Smart Delivery Instructions based on user state */}
             <div className="p-5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900">
               {user?.orderCount > 1 ? (
                 <div className="font-extrabold text-lg">
@@ -132,15 +129,15 @@ export default function Cart({ onNavigate }) {
               ) : (
                 <div className="space-y-3">
                   <p className="font-bold text-base">
-                    Welcome to ReReCant! Please contact us on WhatsApp to verify your pick-up spot / delivery:
+                    Welcome to ReReCant! Contact us on WhatsApp for pick-up/delivery:
                   </p>
                   <a
-                    href="https://wa.me/919876543210?text=Hi%20ReReCant,%20I%20just%20placed%20an%20order!" 
+                    href="https://wa.me/919876543210?text=Hi%20ReReCant,%20I%20just%20placed%20an%20order!"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-extrabold px-6 py-3 rounded-xl shadow-md transition active:scale-95"
                   >
-                    <span>💬 Contact on WhatsApp</span>
+                    💬 Contact on WhatsApp
                   </a>
                 </div>
               )}
@@ -166,7 +163,6 @@ export default function Cart({ onNavigate }) {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Cart Items List */}
             <div className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm space-y-4">
               {cart.map((item) => (
                 <div key={item.id} className="flex justify-between items-center border-b pb-4 last:border-b-0">
@@ -184,7 +180,6 @@ export default function Cart({ onNavigate }) {
               ))}
             </div>
 
-            {/* OTP LOGIN / CHECKOUT SECTION */}
             {step === "phone" ? (
               <form onSubmit={handleSendOtp} className="bg-white rounded-3xl p-6 border border-gray-200 shadow-sm space-y-4">
                 <h3 className="font-extrabold text-slate-900 text-lg">📱 Enter Mobile Number to Continue</h3>
@@ -194,9 +189,9 @@ export default function Cart({ onNavigate }) {
                   placeholder="Enter 10-digit mobile number"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-gray-300 font-bold focus:ring-2 focus:ring-green-600 outline-none"
+                  className="w-full p-3.5 rounded-xl border border-gray-300 font-bold outline-none"
                 />
-                <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-xl">
+                <button type="submit" className="w-full bg-green-600 text-white font-black py-3.5 rounded-xl">
                   Send OTP 🚀
                 </button>
               </form>
@@ -210,10 +205,10 @@ export default function Cart({ onNavigate }) {
                   placeholder="Enter 4-digit OTP"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  className="w-full p-3.5 rounded-xl border border-gray-300 font-bold text-center tracking-widest text-xl focus:ring-2 focus:ring-green-600 outline-none"
+                  className="w-full p-3.5 rounded-xl border border-gray-300 font-bold text-center tracking-widest text-xl outline-none"
                 />
-                <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-black py-3.5 rounded-xl">
-                  Verify OTP & Proceed to Pay 💳
+                <button type="submit" className="w-full bg-green-600 text-white font-black py-3.5 rounded-xl">
+                  Verify OTP & Proceed 💳
                 </button>
               </form>
             ) : (
