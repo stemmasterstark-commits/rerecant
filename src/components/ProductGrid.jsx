@@ -26,6 +26,18 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
   const handleAddToCart = (product) => {
     if (!setCartItems) return;
 
+    // 1. Find how many of this product are already in the cart
+    const existingInCart = cartItems.find((item) => item.id === product.id);
+    const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
+
+    // 2. Check if adding one more exceeds available stock
+    if (currentQtyInCart >= product.stock) {
+      setToastMessage(`⚠️ Cannot add more! Maximum available stock is ${product.stock}.`);
+      setTimeout(() => setToastMessage(""), 2500);
+      return;
+    }
+
+    // 3. Increment quantity safely
     setCartItems((prevCart) => {
       const existing = prevCart.find((item) => item.id === product.id);
       if (existing) {
@@ -38,7 +50,7 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
       return [...prevCart, { ...product, quantity: 1 }];
     });
 
-    // Show Toast Notification
+    // 4. Show Success Toast Notification
     setToastMessage(`Added "${product.name}" to your cart! 🛒`);
     setTimeout(() => setToastMessage(""), 2500);
   };

@@ -8,15 +8,25 @@ export default function Cart({ cartItems = [], setCartItems, clearCart, setActiv
 
   const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  const updateQuantity = (id, delta) => {
-    setCartItems(prev =>
-      prev.map(item => {
+  const updateQuantity = (id, newQuantity) => {
+    if (newQuantity <= 0) {
+      // Remove item if quantity becomes 0
+      setCartItems((prev) => prev.filter((item) => item.id !== id));
+      return;
+    }
+
+    setCartItems((prev) =>
+      prev.map((item) => {
         if (item.id === id) {
-          const newQty = item.quantity + delta;
-          return newQty > 0 ? { ...item, quantity: newQty } : null;
+          // Prevent increasing beyond database stock
+          if (newQuantity > item.stock) {
+            alert(`Sorry, only ${item.stock} units of ${item.name} are available in stock.`);
+            return item;
+          }
+          return { ...item, quantity: newQuantity };
         }
         return item;
-      }).filter(Boolean)
+      })
     );
   };
 

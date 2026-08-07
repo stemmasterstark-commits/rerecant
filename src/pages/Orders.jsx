@@ -41,7 +41,7 @@ export default function Orders({ setActivePage }) {
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-6">
       <h1 className="text-3xl font-black text-black tracking-tight flex items-center gap-2">
-          <span>📋</span> <span className="text-slate-950">My Orders</span>
+          <span>📋</span> <span className="text-slate-400">My Orders</span>
       </h1>
       {orders.length === 0 ? (
         <div className="bg-white p-8 rounded-2xl text-center border border-gray-100 space-y-3">
