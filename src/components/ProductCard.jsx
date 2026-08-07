@@ -3,12 +3,14 @@ import React, { useState } from "react";
 export default function ProductCard({ product, onAddToCart, cartItems = [] }) {
   const [added, setAdded] = useState(false);
 
-  // 1. Calculate how many of this product are already in the cart
+  // Safely extract numerical stock from DB fields (fallback to 99 if field doesn't exist)
+  const rawStock = product.stock ?? product.available_stock ?? product.inventory ?? 99;
+  const stockLimit = Number(rawStock);
+
+  // Calculate items currently in user's cart
   const inCartItem = cartItems.find((item) => item.id === product.id);
   const currentInCartCount = inCartItem ? inCartItem.quantity : 0;
 
-  // 2. Determine actual remaining available stock
-  const stockLimit = Number(product.stock ?? 0);
   const isOutOfStock = stockLimit <= 0;
   const isMaxInCartReached = currentInCartCount >= stockLimit;
 

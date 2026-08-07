@@ -28,9 +28,9 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
 
     const existingInCart = cartItems.find((item) => item.id === product.id);
     const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
-    const availableStock = Number(product.stock ?? 0);
+    const rawStock = product.stock ?? product.available_stock ?? product.inventory ?? 99;
+    const availableStock = Number(rawStock);
 
-    // Hard Stop Check
     if (currentQtyInCart >= availableStock) {
       setToastMessage(`⚠️ Cannot add more! Maximum available stock is ${availableStock}.`);
       setTimeout(() => setToastMessage(""), 2500);
