@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "../services/supabase";
 
 export default function Cart({
@@ -8,8 +8,29 @@ export default function Cart({
   setActivePage,
 }) {
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+
+  // 🔒 Live Auth Listener to detect logged-in status reliably
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      setCheckingAuth(false);
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Stepper logic
   const updateQuantity = (id, newQuantity) => {
@@ -40,10 +61,7 @@ export default function Cart({
   );
 
   // Save order to Supabase and update stock
-  const processSuccessfulOrder = async (paymentId) => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    // 1. Prepare structured items array for JSON history
+  const processSuccessfulOrder = async (paymentId, currentUser) => {
     const orderItems = cartItems.map((item) => ({
       id: item.id,
       name: item.name,
@@ -52,10 +70,10 @@ export default function Cart({
       image_url: item.image_url || null,
     }));
 
-    // 2. Save into `orders` table
+    // 1. Save into `orders` table with currentUser.id
     const { error: orderError } = await supabase.from("orders").insert([
       {
-        user_id: user?.id,
+        user_id: currentUser.id,
         items: orderItems,
         total_amount: totalAmount,
         payment_id: paymentId,
@@ -65,7 +83,7 @@ export default function Cart({
 
     if (orderError) console.error("Order save error:", orderError);
 
-    // 3. Deduct product stock in `products` table
+    // 2. Deduct product stock in `products` table
     for (const item of cartItems) {
       const currentStock =
         typeof item.stock === "number"
@@ -80,24 +98,35 @@ export default function Cart({
         .eq("id", item.id);
     }
 
-    // 4. Set state for popup modal & clear cart
+    // 3. Trigger modal and reset cart
     setCompletedOrder({ items: orderItems, total: totalAmount, paymentId });
     setShowSuccessModal(true);
     clearCart();
   };
 
-  // Razorpay Checkout Trigger
+  // Razorpay Checkout Trigger with STRICT Auth Block
   const handleCheckout = async () => {
+    setLoading(true);
+
+    // 🔒 STRICT BLOCK 1: Get latest session directly from Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    const activeUser = session?.user;
+
+    if (!activeUser) {
+      setLoading(false);
+      alert("🔒 Access Denied: You must be logged in to proceed to payment.");
+      if (setActivePage) setActivePage("login");
+      return; // ⛔ STOP HERE! Razorpay WILL NOT OPEN.
+    }
+
+    // Double check Razorpay script availability
     if (typeof window.Razorpay === "undefined") {
-      alert("Razorpay SDK not loaded. Check index.html script tag.");
+      alert("Razorpay SDK not loaded. Please refresh the page.");
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || "YOUR_RAZORPAY_KEY_ID",
         amount: totalAmount * 100,
@@ -107,7 +136,7 @@ export default function Cart({
         image: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
         handler: async function (response) {
           try {
-            await processSuccessfulOrder(response.razorpay_payment_id);
+            await processSuccessfulOrder(response.razorpay_payment_id, activeUser);
           } catch (err) {
             console.error("Order completion failed:", err);
           } finally {
@@ -115,8 +144,8 @@ export default function Cart({
           }
         },
         prefill: {
-          name: user?.user_metadata?.full_name || "Student User",
-          email: user?.email || "student@example.com",
+          name: activeUser.user_metadata?.full_name || activeUser.email?.split("@")[0] || "Student",
+          email: activeUser.email,
         },
         theme: { color: "#059669" },
         modal: {
@@ -146,7 +175,6 @@ export default function Cart({
         )}
       </div>
 
-      {/* Cart Content */}
       {cartItems.length === 0 ? (
         <div className="max-w-md mx-auto py-16 text-center space-y-4">
           <div className="text-6xl">🛒</div>
@@ -224,13 +252,24 @@ export default function Cart({
               <span>Total</span>
               <span className="text-emerald-600">₹{totalAmount}</span>
             </div>
-            <button
-              disabled={loading}
-              onClick={handleCheckout}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 disabled:opacity-50"
-            >
-              {loading ? "Processing..." : "Proceed to Checkout"}
-            </button>
+
+            {/* Smart Button: Changes based on Auth state */}
+            {!user ? (
+              <button
+                onClick={() => setActivePage && setActivePage("login")}
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>🔒 Login to Proceed to Checkout</span>
+              </button>
+            ) : (
+              <button
+                disabled={loading || checkingAuth}
+                onClick={handleCheckout}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 disabled:opacity-50"
+              >
+                {loading ? "Opening Payment Gateway..." : "Proceed to Checkout"}
+              </button>
+            )}
           </div>
         </>
       )}
@@ -238,7 +277,7 @@ export default function Cart({
       {/* STYLISH CUSTOM ORDER PLACED MODAL */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-5 animate-scaleUp border border-emerald-100">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center space-y-5 border border-emerald-100">
             <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
               🎉
             </div>
