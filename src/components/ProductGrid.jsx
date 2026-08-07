@@ -5,7 +5,6 @@ import ProductCard from "./ProductCard";
 export default function ProductGrid({ cartItems = [], setCartItems }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     async function fetchProducts() {
@@ -22,36 +21,6 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
 
     fetchProducts();
   }, []);
-
-  const handleAddToCart = (product) => {
-    if (!setCartItems) return;
-
-    const existingInCart = cartItems.find((item) => item.id === product.id);
-    const currentQtyInCart = existingInCart ? existingInCart.quantity : 0;
-    const rawStock = product.stock ?? product.available_stock ?? product.inventory ?? 99;
-    const availableStock = Number(rawStock);
-
-    if (currentQtyInCart >= availableStock) {
-      setToastMessage(`⚠️ Cannot add more! Maximum available stock is ${availableStock}.`);
-      setTimeout(() => setToastMessage(""), 2500);
-      return;
-    }
-
-    setCartItems((prevCart) => {
-      const existing = prevCart.find((item) => item.id === product.id);
-      if (existing) {
-        return prevCart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevCart, { ...product, quantity: 1 }];
-    });
-
-    setToastMessage(`Added "${product.name}" to your cart! 🛒`);
-    setTimeout(() => setToastMessage(""), 2500);
-  };
 
   if (loading) {
     return (
@@ -76,16 +45,10 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
             key={product.id}
             product={product}
             cartItems={cartItems}
-            onAddToCart={handleAddToCart}
+            setCartItems={setCartItems}
           />
         ))}
       </div>
-
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-800 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-xl border border-emerald-600 animate-bounce">
-          {toastMessage}
-        </div>
-      )}
     </div>
   );
 }

@@ -1,15 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
+import { supabase } from "../services/supabase";
 
-export default function Cart({ cartItems, setCartItems, clearCart, setActivePage }) {
+export default function Cart({
+  cartItems,
+  setCartItems,
+  clearCart,
+  setActivePage,
+}) {
+  const [loading, setLoading] = useState(false);
+
+  // Stepper logic inside Cart
   const updateQuantity = (id, newQuantity) => {
     setCartItems((prev) =>
       prev
         .map((item) => {
           if (item.id === id) {
-            const rawStock = item.stock ?? item.available_stock ?? item.inventory ?? 99;
+            const rawStock =
+              item.stock ?? item.available_stock ?? item.inventory ?? 99;
             const maxStock = Number(rawStock);
+
             if (newQuantity > maxStock) {
-              alert(`Sorry, only ${maxStock} units of "${item.name}" are in stock!`);
+              alert(`Only ${maxStock} units available in stock!`);
               return { ...item, quantity: maxStock };
             }
             return { ...item, quantity: newQuantity };
@@ -25,6 +36,59 @@ export default function Cart({ cartItems, setCartItems, clearCart, setActivePage
     0
   );
 
+  // Razorpay Checkout Handler
+  const handleCheckout = async () => {
+    setLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert("Please log in to complete your checkout.");
+        setLoading(false);
+        return;
+      }
+
+      // 1. Insert order into Supabase
+      const { data: orderData, error: orderError } = await supabase
+        .from("orders")
+        .insert([
+          {
+            user_id: user.id,
+            total_amount: totalAmount,
+            status: "Paid",
+            items: cartItems,
+            payment_id: "pay_test_" + Math.random().toString(36).substring(7),
+          },
+        ])
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Decrement Database Stock for each item
+      for (const item of cartItems) {
+        const rawStock =
+          item.stock ?? item.available_stock ?? item.inventory ?? 99;
+        const newStock = Math.max(0, Number(rawStock) - item.quantity);
+
+        await supabase
+          .from("products")
+          .update({ stock: newStock })
+          .eq("id", item.id);
+      }
+
+      alert("🎉 Order placed successfully!");
+      clearCart();
+      if (setActivePage) setActivePage("orders");
+    } catch (err) {
+      alert(`Checkout failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (cartItems.length === 0) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-4">
@@ -34,7 +98,7 @@ export default function Cart({ cartItems, setCartItems, clearCart, setActivePage
           Looks like you haven't added any snacks or groceries yet.
         </p>
         <button
-          onClick={() => setActivePage("grocery")} // 👈 Redirects directly to Grocery Store!
+          onClick={() => setActivePage && setActivePage("grocery")}
           className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95"
         >
           Browse Grocery Store
@@ -55,34 +119,59 @@ export default function Cart({ cartItems, setCartItems, clearCart, setActivePage
         </button>
       </div>
 
+      {/* Cart Items List with Product Thumbnails */}
       <div className="space-y-3">
         {cartItems.map((item) => {
-          const rawStock = item.stock ?? item.available_stock ?? item.inventory ?? 99;
+          const rawStock =
+            item.stock ?? item.available_stock ?? item.inventory ?? 99;
           const maxStock = Number(rawStock);
 
           return (
             <div
               key={item.id}
-              className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center"
+              className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4"
             >
-              <div>
-                <h3 className="font-bold text-gray-800 text-sm">{item.name}</h3>
-                <p className="text-xs text-emerald-600 font-bold">₹{item.price}</p>
+              {/* Image & Title */}
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+                  {item.image_url ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xl">
+                      🍿
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-sm">
+                    {item.name}
+                  </h3>
+                  <p className="text-xs text-emerald-600 font-bold">
+                    ₹{item.price} each
+                  </p>
+                </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Quantity Controls & Total */}
+              <div className="flex items-center gap-4">
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button
                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                    className="px-3 py-1 bg-gray-50 text-gray-600 font-bold hover:bg-gray-100"
+                    className="px-3 py-1 bg-gray-50 text-gray-700 font-black hover:bg-gray-100 transition-all"
                   >
                     -
                   </button>
-                  <span className="px-3 text-xs font-bold">{item.quantity}</span>
+                  <span className="px-3 text-xs font-black text-gray-900">
+                    {item.quantity}
+                  </span>
                   <button
                     disabled={item.quantity >= maxStock}
                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                    className="px-3 py-1 bg-gray-50 text-gray-600 font-bold hover:bg-gray-100 disabled:opacity-40"
+                    className="px-3 py-1 bg-gray-50 text-gray-700 font-black hover:bg-gray-100 disabled:opacity-30 transition-all"
                   >
                     +
                   </button>
@@ -96,13 +185,18 @@ export default function Cart({ cartItems, setCartItems, clearCart, setActivePage
         })}
       </div>
 
+      {/* Cart Summary Card */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex justify-between items-center text-lg font-black text-gray-900">
           <span>Total</span>
           <span className="text-emerald-600">₹{totalAmount}</span>
         </div>
-        <button className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95">
-          Proceed to Checkout
+        <button
+          disabled={loading}
+          onClick={handleCheckout}
+          className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 disabled:opacity-50"
+        >
+          {loading ? "Processing Order..." : "Proceed to Checkout"}
         </button>
       </div>
     </div>

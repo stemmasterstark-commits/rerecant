@@ -1,27 +1,50 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function ProductCard({ product, onAddToCart, cartItems = [] }) {
-  const [added, setAdded] = useState(false);
-
-  // Safely extract numerical stock from DB fields (fallback to 99 if field doesn't exist)
+export default function ProductCard({
+  product,
+  cartItems = [],
+  setCartItems,
+}) {
+  // Extract numerical stock safely
   const rawStock = product.stock ?? product.available_stock ?? product.inventory ?? 99;
   const stockLimit = Number(rawStock);
 
-  // Calculate items currently in user's cart
+  // Check current item quantity in cart
   const inCartItem = cartItems.find((item) => item.id === product.id);
   const currentInCartCount = inCartItem ? inCartItem.quantity : 0;
 
   const isOutOfStock = stockLimit <= 0;
-  const isMaxInCartReached = currentInCartCount >= stockLimit;
+  const isMaxReached = currentInCartCount >= stockLimit;
 
-  const handleAdd = () => {
-    if (isMaxInCartReached || isOutOfStock) return;
+  // Quantity Handlers
+  const handleIncrease = () => {
+    if (isMaxReached || isOutOfStock) return;
 
-    if (onAddToCart) {
-      onAddToCart(product);
-    }
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1200);
+    setCartItems((prev) => {
+      const existing = prev.find((item) => item.id === product.id);
+      if (existing) {
+        return prev.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  const handleDecrease = () => {
+    if (currentInCartCount <= 0) return;
+
+    setCartItems((prev) =>
+      prev
+        .map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
+        )
+        .filter((item) => item.quantity > 0)
+    );
   };
 
   return (
@@ -50,13 +73,13 @@ export default function ProductCard({ product, onAddToCart, cartItems = [] }) {
         {/* Product Title */}
         <h3 className="font-bold text-gray-800 text-base mb-1">{product.name}</h3>
 
-        {/* Stock Status Indicator */}
+        {/* Stock Badge */}
         <div className="flex items-center gap-1.5 mb-3">
           <span
             className={`w-2 h-2 rounded-full ${
               isOutOfStock
                 ? "bg-red-500"
-                : isMaxInCartReached
+                : isMaxReached
                 ? "bg-amber-500"
                 : "bg-emerald-500 animate-pulse"
             }`}
@@ -65,48 +88,63 @@ export default function ProductCard({ product, onAddToCart, cartItems = [] }) {
             className={`text-xs font-semibold ${
               isOutOfStock
                 ? "text-red-600"
-                : isMaxInCartReached
+                : isMaxReached
                 ? "text-amber-600"
                 : "text-emerald-600"
             }`}
           >
             {isOutOfStock
               ? "Out of Stock"
-              : isMaxInCartReached
-              ? `Max in Cart (${currentInCartCount}/${stockLimit})`
-              : `Available: ${stockLimit}`}
+              : isMaxReached
+              ? `Max Reached (${currentInCartCount}/${stockLimit})`
+              : `In Stock: ${stockLimit}`}
           </span>
         </div>
       </div>
 
-      {/* Price & Action Button */}
+      {/* Price & Counter / Add Button */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
         <span className="text-lg font-black text-emerald-600">
           ₹{product.price}
         </span>
 
-        <button
-          type="button"
-          disabled={isOutOfStock || isMaxInCartReached}
-          onClick={handleAdd}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 ${
-            isOutOfStock
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : isMaxInCartReached
-              ? "bg-amber-100 text-amber-700 cursor-not-allowed"
-              : added
-              ? "bg-emerald-800 text-white"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
-          }`}
-        >
-          {isOutOfStock
-            ? "Out of Stock"
-            : isMaxInCartReached
-            ? "Limit Reached"
-            : added
-            ? "✓ Added!"
-            : "Add to Cart"}
-        </button>
+        {isOutOfStock ? (
+          <button
+            disabled
+            className="px-4 py-2 bg-gray-200 text-gray-400 font-bold text-xs rounded-xl cursor-not-allowed"
+          >
+            Out of Stock
+          </button>
+        ) : currentInCartCount > 0 ? (
+          /* Plus/Minus Stepper Controls on Product Card */
+          <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+              onClick={handleDecrease}
+              className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black text-sm transition-all"
+            >
+              -
+            </button>
+            <span className="px-3 text-xs font-black text-emerald-900">
+              {currentInCartCount}
+            </span>
+            <button
+              disabled={isMaxReached}
+              onClick={handleIncrease}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              +
+            </button>
+          </div>
+        ) : (
+          /* Initial Add Button */
+          <button
+            type="button"
+            onClick={handleIncrease}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95"
+          >
+            Add to Cart
+          </button>
+        )}
       </div>
     </div>
   );
