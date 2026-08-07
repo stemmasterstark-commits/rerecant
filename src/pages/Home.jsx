@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
+ 
 import ProductGrid from "../components/ProductGrid";
 import { supabase } from "../services/supabase";
 
