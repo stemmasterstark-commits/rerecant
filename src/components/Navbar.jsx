@@ -1,21 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import AuthModal from './AuthModal';
+import React, { useEffect, useState } from "react";
+import { supabase } from "../services/supabase";
+import AuthModal from "./AuthModal";
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
-    // Check initial user status
+    // 1. Get initial session/user
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
 
-    // Listen for auth updates
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+    // 2. Listen for login / logout state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
 
     return () => {
       authListener.subscription.unsubscribe();
@@ -35,9 +37,9 @@ export default function Navbar() {
           {user ? (
             <div className="flex items-center gap-3">
               <span className="text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-full">
-                👤 {user.email.split('@')[0]}
+                👤 {user.email?.split("@")[0]}
               </span>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="text-xs text-red-600 hover:text-red-800 font-bold transition"
               >
@@ -45,7 +47,7 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setIsAuthOpen(true)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
             >
@@ -55,10 +57,8 @@ export default function Navbar() {
         </div>
       </nav>
 
-      <AuthModal 
-        isOpen={isAuthOpen} 
-        onClose={() => setIsAuthOpen(false)} 
-      />
+      {/* Renders the Auth Login/Signup Modal */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
 }
