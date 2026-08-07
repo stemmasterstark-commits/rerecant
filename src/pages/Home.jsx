@@ -13,7 +13,7 @@ export default function Home({ setActivePage }) {
             Craving Late Night Snacks? We’ve Got You Covered.
           </h1>
           <p className="text-emerald-100 text-sm md:text-base leading-relaxed">
-            Order your favorite puffs, chips, drinks, and instant meals straight from the ReReCant canteen with instant Razorpay checkout.
+            Order your favorite puffs, chips, and instant meals straight from the ReReCant canteen with instant Razorpay checkout.
           </p>
           <div className="pt-2">
             <button
@@ -33,7 +33,7 @@ export default function Home({ setActivePage }) {
       <section className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-sm space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-2">
           <h2 className="text-3xl font-black text-gray-900">The Story Behind ReReCant</h2>
-          <p className="text-gray-500 text-sm">Building the future of campus dining & late-night convenience.</p>
+          <p className="text-gray-500 text-sm">Building the future of campus snacking & late-night convenience.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
@@ -41,7 +41,7 @@ export default function Home({ setActivePage }) {
             <div className="text-3xl">🌙</div>
             <h3 className="font-bold text-gray-800 text-lg">Late Night Savior</h3>
             <p className="text-xs text-gray-600 leading-relaxed">
-              Founded to solve the late-night hunger pangs during exam crunch hours when traditional canteens close down.
+              Founded to solve the late-night hunger pangs during exam crunch hours or whenever you get the urge to eat anything and when vending machine goes down.
             </p>
           </div>
 
