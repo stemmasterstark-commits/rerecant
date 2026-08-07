@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import AuthModal from '..components/AuthModal';
+import AuthModal from '../components/AuthModal';
 
 export default function Cart({ cartItems, clearCart }) {
   const [loading, setLoading] = useState(false);
