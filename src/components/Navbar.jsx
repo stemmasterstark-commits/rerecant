@@ -28,37 +28,28 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
     await supabase.auth.signOut();
   };
 
-  const navTo = (page) => {
-    if (setActivePage) {
-      setActivePage(page);
-    }
-  };
-
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+      <header className="sticky top-0 z-40 bg-emerald-600 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           {/* Logo */}
           <div 
-            onClick={() => navTo("home")}
-            className="flex items-center gap-2 text-xl font-extrabold text-gray-900 tracking-tight cursor-pointer"
+            onClick={() => setActivePage && setActivePage("home")}
+            className="flex items-center gap-2 text-2xl font-black tracking-wide cursor-pointer hover:opacity-90 transition"
           >
-            <span className="text-2xl">🛒</span>
-            <span className="bg-linear-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              ReReCant
-            </span>
+            ReReCant
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-1 sm:gap-6">
+          <nav className="flex items-center gap-2 sm:gap-4">
             <button
               type="button"
-              onClick={() => navTo("home")}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+              onClick={() => setActivePage && setActivePage("home")}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                 activePage === "home" 
-                  ? "text-indigo-600 bg-indigo-50" 
-                  : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
+                  ? "bg-emerald-700 text-white font-bold shadow-inner" 
+                  : "text-emerald-50 hover:bg-emerald-500"
               }`}
             >
               Home
@@ -66,11 +57,11 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
 
             <button
               type="button"
-              onClick={() => navTo("orders")}
-              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+              onClick={() => setActivePage && setActivePage("orders")}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition ${
                 activePage === "orders" 
-                  ? "text-indigo-600 bg-indigo-50" 
-                  : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
+                  ? "bg-emerald-700 text-white font-bold shadow-inner" 
+                  : "text-emerald-50 hover:bg-emerald-500"
               }`}
             >
               Orders
@@ -78,16 +69,16 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
 
             <button
               type="button"
-              onClick={() => navTo("cart")}
-              className={`relative px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+              onClick={() => setActivePage && setActivePage("cart")}
+              className={`relative px-4 py-2 rounded-full text-sm font-medium transition ${
                 activePage === "cart" 
-                  ? "text-indigo-600 bg-indigo-50" 
-                  : "text-gray-600 hover:text-indigo-600 hover:bg-gray-50"
+                  ? "bg-emerald-700 text-white font-bold shadow-inner" 
+                  : "text-emerald-50 hover:bg-emerald-500"
               }`}
             >
-              🛒 Cart
+              Cart
               {cartCount > 0 && (
-                <span className="ml-1.5 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-white bg-indigo-600 rounded-full">
+                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-white rounded-full">
                   {cartCount}
                 </span>
               )}
@@ -95,17 +86,17 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
           </nav>
 
           {/* Auth Section */}
-          <div className="flex items-center gap-3">
+          <div>
             {user ? (
-              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200/80 rounded-full py-1.5 px-3">
-                <span className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <div className="flex items-center gap-3 bg-emerald-700 border border-emerald-500/50 rounded-full py-1.5 px-4 shadow-sm">
+                <span className="text-xs font-semibold text-emerald-100 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
                   {user.email?.split("@")[0]}
                 </span>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="text-xs text-red-500 hover:text-red-700 font-bold transition-colors pl-1 border-l border-gray-200"
+                  className="text-xs text-red-200 hover:text-white font-bold transition-colors pl-2 border-l border-emerald-500"
                 >
                   Logout
                 </button>
@@ -114,7 +105,7 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
               <button
                 type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-md shadow-indigo-100 hover:shadow-indigo-200 transition-all active:scale-95"
+                className="px-5 py-2 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-sm rounded-full shadow transition-all active:scale-95"
               >
                 Login
               </button>

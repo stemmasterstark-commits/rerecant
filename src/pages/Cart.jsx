@@ -2,14 +2,24 @@ import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import AuthModal from '../components/AuthModal';
 
-export default function Cart({ cartItems, clearCart }) {
+export default function Cart({ cartItems = [], setCartItems, clearCart, setActivePage }) {
   const [loading, setLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Calculate total amount
   const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  // Load Razorpay Script dynamically
+  const updateQuantity = (id, delta) => {
+    setCartItems(prev =>
+      prev.map(item => {
+        if (item.id === id) {
+          const newQty = item.quantity + delta;
+          return newQty > 0 ? { ...item, quantity: newQty } : null;
+        }
+        return item;
+      }).filter(Boolean)
+    );
+  };
+
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement('script');
@@ -21,13 +31,12 @@ export default function Cart({ cartItems, clearCart }) {
   };
 
   const handleCheckout = async () => {
-    if (cartItems.length === 0) return alert('Your cart is empty!');
+    if (cartItems.length === 0) return;
 
-    // 1. Enforce User Login Check
+    // 1. Enforce Auth
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      alert("Please log in to complete your order!");
       setIsAuthModalOpen(true);
       return;
     }
@@ -36,33 +45,28 @@ export default function Cart({ cartItems, clearCart }) {
 
     const res = await loadRazorpayScript();
     if (!res) {
-      alert('Razorpay SDK failed to load. Check your internet connection.');
+      alert('Razorpay SDK failed to load. Please check your internet connection.');
       setLoading(false);
       return;
     }
 
-    // 2. Configure Razorpay Options
+    // 2. Open Razorpay
     const options = {
       key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-      amount: totalAmount * 100, // Amount in paise
+      amount: totalAmount * 100,
       currency: 'INR',
       name: 'ReReCant Canteen',
-      description: 'Order Payment',
-      prefill: {
-        email: user.email,
-      },
+      description: 'Canteen Food Order',
+      prefill: { email: user.email },
       handler: async function (response) {
         try {
-          // A. Decrease Stock in Supabase for each purchased item
+          // Decrement stock in Supabase
           for (const item of cartItems) {
-            const newStock = Math.max(0, item.stock - item.quantity);
-            await supabase
-              .from('products')
-              .update({ stock: newStock })
-              .eq('id', item.id);
+            const newStock = Math.max(0, (item.stock || item.quantity) - item.quantity);
+            await supabase.from('products').update({ stock: newStock }).eq('id', item.id);
           }
 
-          // B. Create Order record tied to user_id
+          // Save order to orders table
           await supabase.from('orders').insert([
             {
               user_id: user.id,
@@ -73,17 +77,16 @@ export default function Cart({ cartItems, clearCart }) {
             }
           ]);
 
-          alert('🎉 Payment successful! Your order has been placed.');
+          alert('🎉 Order placed successfully!');
           if (clearCart) clearCart();
+          if (setActivePage) setActivePage('orders');
         } catch (err) {
-          console.error('Error processing post-payment logic:', err);
+          console.error('Payment error:', err);
         } finally {
           setLoading(false);
         }
       },
-      theme: {
-        color: '#4F46E5',
-      },
+      theme: { color: '#059669' }
     };
 
     const paymentObject = new window.Razorpay(options);
@@ -91,46 +94,98 @@ export default function Cart({ cartItems, clearCart }) {
     setLoading(false);
   };
 
+  if (cartItems.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center">
+        <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 shadow-sm">
+          🛒
+        </div>
+        <h2 className="text-2xl font-black text-gray-800 mb-2">Your Cart is Empty</h2>
+        <p className="text-gray-500 mb-6 text-sm">Looks like you haven't added any snacks or drinks yet!</p>
+        <button
+          onClick={() => setActivePage && setActivePage('home')}
+          className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all"
+        >
+          Browse Menu
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
-      <div className="bg-white p-6 rounded-2xl shadow-lg max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4 text-gray-800">Your Cart</h2>
+      <div className="max-w-4xl mx-auto py-6">
+        <h1 className="text-2xl font-black text-gray-800 mb-6 flex items-center gap-2">
+          <span>🛒</span> Shopping Cart
+        </h1>
 
-        {cartItems.length === 0 ? (
-          <p className="text-gray-500 text-sm">Your cart is empty.</p>
-        ) : (
-          <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items List */}
+          <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item) => (
-              <div key={item.id} className="flex justify-between items-center text-sm border-b pb-2">
-                <div>
-                  <p className="font-semibold text-gray-800">{item.name}</p>
-                  <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+              <div key={item.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {item.image_url && (
+                    <img src={item.image_url} alt={item.name} className="w-16 h-16 object-cover rounded-xl" />
+                  )}
+                  <div>
+                    <h3 className="font-bold text-gray-800">{item.name}</h3>
+                    <p className="text-xs text-emerald-600 font-semibold">₹{item.price} each</p>
+                  </div>
                 </div>
-                <p className="font-medium text-gray-700">₹{item.price * item.quantity}</p>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                    <button 
+                      onClick={() => updateQuantity(item.id, -1)}
+                      className="px-3 py-1 font-bold text-gray-600 hover:bg-gray-200 text-sm"
+                    >
+                      -
+                    </button>
+                    <span className="px-3 py-1 font-bold text-xs text-gray-800">{item.quantity}</span>
+                    <button 
+                      onClick={() => updateQuantity(item.id, 1)}
+                      className="px-3 py-1 font-bold text-gray-600 hover:bg-gray-200 text-sm"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <p className="font-bold text-gray-900 w-16 text-right">₹{item.price * item.quantity}</p>
+                </div>
               </div>
             ))}
+          </div>
 
-            <div className="flex justify-between items-center pt-3 font-bold text-lg text-gray-900 border-t">
-              <span>Total:</span>
+          {/* Checkout Card */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm h-fit space-y-4">
+            <h2 className="text-lg font-bold text-gray-800 border-b pb-3">Order Summary</h2>
+
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Subtotal</span>
               <span>₹{totalAmount}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Taxes & Fees</span>
+              <span className="text-emerald-600 font-medium">Free</span>
+            </div>
+
+            <div className="flex justify-between text-lg font-black text-gray-900 border-t pt-3">
+              <span>Total Amount</span>
+              <span className="text-emerald-600">₹{totalAmount}</span>
             </div>
 
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md transition-all text-sm disabled:opacity-50"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md transition-all text-sm disabled:opacity-50 mt-4"
             >
-              {loading ? 'Processing Payment...' : 'Proceed to Pay'}
+              {loading ? 'Processing...' : 'Proceed to Checkout'}
             </button>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Auth Modal for Unauthenticated Users */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-      />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 }
