@@ -1,24 +1,26 @@
-import { useState } from "react";
-import Home from "./pages/Home";
-import Orders from "./pages/Orders";
-import Cart from "./pages/Cart";
+import React, { useState } from 'react';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import Cart from './pages/Cart';
+import Orders from './pages/Orders'; // If you have an Orders page
 
-function App() {
-  const [currentPage, setCurrentPage] = useState("home");
+export default function App() {
+  const [activePage, setActivePage] = useState('home');
+  const [cartItems, setCartItems] = useState([]);
 
-  const handleNavigate = (page) => {
-    setCurrentPage(page);
-  };
+  return (
+    <div>
+      <Navbar 
+        activePage={activePage} 
+        setActivePage={setActivePage} 
+        cartCount={cartItems.length} 
+      />
 
-  if (currentPage === "orders") {
-    return <Orders onNavigate={handleNavigate} />;
-  }
-
-  if (currentPage === "cart") {
-    return <Cart onNavigate={handleNavigate} />;
-  }
-
-  return <Home onNavigate={handleNavigate} />;
+      <main className="p-4">
+        {activePage === 'home' && <Home setCartItems={setCartItems} />}
+        {activePage === 'cart' && <Cart cartItems={cartItems} />}
+        {activePage === 'orders' && <Orders />}
+      </main>
+    </div>
+  );
 }
-
-export default App;
