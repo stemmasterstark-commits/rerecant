@@ -40,7 +40,7 @@ export default function Orders({ setActivePage }) {
 
   return (
     <div className="max-w-4xl mx-auto py-6 space-y-6">
-      <h1 className="text-2xl font-black text-gray-500 flex items-center gap-2">
+      <h1 className="text-2xl font-black text-gray-1500 flex items-center gap-2">
         <span>📋</span> My Orders
       </h1>
 
