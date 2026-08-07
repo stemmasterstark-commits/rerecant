@@ -7,78 +7,65 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
+    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
+    return () => authListener.subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
-  const navTo = (page) => {
-    if (setActivePage) {
-      setActivePage(page);
-    }
-  };
-
   return (
     <>
-      {/* Matches the "Add to Cart" button color exactly (bg-emerald-600) */}
       <header className="sticky top-0 z-40 bg-emerald-600 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
-          {/* Brand Logo */}
+          {/* Logo */}
           <div 
-            onClick={() => navTo("home")}
+            onClick={() => setActivePage && setActivePage("home")}
             className="flex items-center gap-2 text-2xl font-black tracking-wide cursor-pointer hover:opacity-90 transition"
           >
-            ReReCant
+            🛒 ReReCant
           </div>
 
           {/* Navigation Items */}
-          <nav className="flex items-center gap-2 sm:gap-4">
+          <nav className="flex items-center gap-1 sm:gap-3">
             <button
-              type="button"
-              onClick={() => navTo("home")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                activePage === "home" 
-                  ? "bg-emerald-800 text-white shadow-inner font-bold" 
-                  : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => setActivePage("home")}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
+                activePage === "home" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
               }`}
             >
               Home
             </button>
 
             <button
-              type="button"
-              onClick={() => navTo("orders")}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                activePage === "orders" 
-                  ? "bg-emerald-800 text-white shadow-inner font-bold" 
-                  : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => setActivePage("grocery")}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
+                activePage === "grocery" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
+              }`}
+            >
+              Grocery Store
+            </button>
+
+            <button
+              onClick={() => setActivePage("orders")}
+              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
+                activePage === "orders" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
               }`}
             >
               Orders
             </button>
 
             <button
-              type="button"
-              onClick={() => navTo("cart")}
-              className={`relative px-4 py-2 rounded-full text-sm font-semibold transition ${
-                activePage === "cart" 
-                  ? "bg-emerald-800 text-white shadow-inner font-bold" 
-                  : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => setActivePage("cart")}
+              className={`relative px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
+                activePage === "cart" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
               }`}
             >
               Cart
@@ -90,27 +77,25 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
             </button>
           </nav>
 
-          {/* User / Login Button */}
+          {/* Auth Button */}
           <div>
             {user ? (
-              <div className="flex items-center gap-3 bg-emerald-700 border border-emerald-500/50 rounded-full py-1.5 px-4 shadow-sm">
+              <div className="flex items-center gap-3 bg-emerald-700 border border-emerald-500/50 rounded-full py-1 px-3.5">
                 <span className="text-xs font-semibold text-emerald-100 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
                   {user.email?.split("@")[0]}
                 </span>
                 <button
-                  type="button"
                   onClick={handleLogout}
-                  className="text-xs text-red-200 hover:text-white font-bold transition-colors pl-2 border-l border-emerald-500"
+                  className="text-xs text-red-200 hover:text-white font-bold pl-2 border-l border-emerald-500"
                 >
                   Logout
                 </button>
               </div>
             ) : (
               <button
-                type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="px-5 py-2 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-sm rounded-full shadow transition-all active:scale-95"
+                className="px-4 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-sm rounded-full shadow transition active:scale-95"
               >
                 Login
               </button>
@@ -120,7 +105,6 @@ export default function Navbar({ activePage = "home", setActivePage, cartCount =
         </div>
       </header>
 
-      {/* Login / Sign Up Modal */}
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
     </>
   );
