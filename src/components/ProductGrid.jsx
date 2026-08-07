@@ -1,97 +1,81 @@
-import { useEffect, useState } from "react";
-import ProductCard from "./ProductCard";
+import React, { useEffect, useState } from "react";
 import { supabase } from "../services/supabase";
+import ProductCard from "./ProductCard";
 
-function ProductGrid({ searchQuery = "", selectedCategory = "All" }) {
+export default function ProductGrid({ cartItems = [], setCartItems }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Helper function to safely parse DB rows into consistent product objects
-  const formatProduct = (p) => {
-    if (!p) return null;
-    return {
-      id: p.id,
-      name: p.name || p.title || "Product",
-      price: Number(p.price) || 0,
-      quantity: Number(p.quantity ?? p.stock ?? 0),
-      category: p.category || "General",
-      image_url: p.image_url || p.image || "https://via.placeholder.com/150",
-    };
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const { data, error } = await supabase.from("products").select("*");
-      if (!error && data) {
-        setProducts(data.map(formatProduct).filter(Boolean));
-      }
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
+    async function fetchProducts() {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (!error) {
+        setProducts(data || []);
+      }
+      setLoading(false);
+    }
+
     fetchProducts();
-
-    // Safe Real-time Subscription
-    const channel = supabase
-      .channel("realtime-products-sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "products" },
-        (payload) => {
-          try {
-            if (payload.eventType === "UPDATE" && payload.new) {
-              const updatedProduct = formatProduct(payload.new);
-              setProducts((prev) =>
-                prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
-              );
-            } else if (payload.eventType === "INSERT" && payload.new) {
-              const newProduct = formatProduct(payload.new);
-              setProducts((prev) => [newProduct, ...prev]);
-            } else if (payload.eventType === "DELETE" && payload.old) {
-              setProducts((prev) => prev.filter((p) => p.id !== payload.old.id));
-            }
-          } catch (e) {
-            console.error("Realtime payload handling error:", e);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
-  // Safe Filtering Logic (prevents crashes on empty/null values)
-  const filteredProducts = products.filter((product) => {
-    if (!product) return false;
-    const matchesCategory =
-      selectedCategory === "All" || product.category === selectedCategory;
-    const matchesSearch =
-      !searchQuery ||
-      (product.name && product.name.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
+  const handleAddToCart = (product) => {
+    if (!setCartItems) return;
+
+    setCartItems((prevCart) => {
+      const existing = prevCart.find((item) => item.id === product.id);
+      if (existing) {
+        return prevCart.map((item) =>
+          item.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prevCart, { ...product, quantity: 1 }];
+    });
+
+    // Show Toast Notification
+    setToastMessage(`Added "${product.name}" to your cart! 🛒`);
+    setTimeout(() => setToastMessage(""), 2500);
+  };
 
   if (loading) {
     return (
-      <div className="text-center py-12 text-gray-700 font-bold text-lg animate-pulse">
-        Fetching live products... 🛒
+      <div className="py-16 text-center text-emerald-600 font-bold text-sm">
+        Loading snacks...
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {filteredProducts.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black text-gray-900">Grocery Store</h2>
+        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+          {products.length} Products Available
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={handleAddToCart}
+          />
+        ))}
+      </div>
+
+      {/* Floating Add to Cart Toast Alert */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-700 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-xl flex items-center gap-2 border border-emerald-500 animate-bounce">
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 }
-
-export default ProductGrid;
