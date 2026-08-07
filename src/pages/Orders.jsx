@@ -37,7 +37,7 @@ export default function Orders({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900 pb-12">
-      <Navbar onNavigate={onNavigate} currentPage="orders" />
+       
 
       <main className="max-w-2xl mx-auto px-4 pt-8">
         <h1 style={{ color: "#0f172a" }} className="text-3xl font-black mb-6 flex items-center gap-2">
