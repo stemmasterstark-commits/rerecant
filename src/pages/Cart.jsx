@@ -9,16 +9,21 @@ export default function Cart({
 }) {
   const [loading, setLoading] = useState(false);
 
-  // Stepper logic inside Cart strictly referencing item.stock
+  // Stepper logic inside Cart
   const updateQuantity = (id, newQuantity) => {
     setCartItems((prev) =>
       prev
         .map((item) => {
           if (item.id === id) {
-            const maxStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
+            const maxStock =
+              typeof item.stock === "number"
+                ? item.stock
+                : Number(item.stock || 0);
 
             if (newQuantity > maxStock) {
-              alert(`Only ${maxStock} units of "${item.name}" available in stock!`);
+              alert(
+                `Only ${maxStock} units of "${item.name}" available in stock!`
+              );
               return { ...item, quantity: maxStock };
             }
             return { ...item, quantity: newQuantity };
@@ -34,49 +39,34 @@ export default function Cart({
     0
   );
 
-  // Razorpay Checkout Handler
+  // Direct Checkout Handler: Updates stock in `products` table directly
   const handleCheckout = async () => {
     setLoading(true);
+
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        alert("Please log in to complete your checkout.");
-        setLoading(false);
-        return;
-      }
-
-      // 1. Insert order into Supabase
-      const { error: orderError } = await supabase
-        .from("orders")
-        .insert([
-          {
-            user_id: user.id,
-            total_amount: totalAmount,
-            status: "Paid",
-            items: cartItems,
-            payment_id: "pay_test_" + Math.random().toString(36).substring(7),
-          },
-        ]);
-
-      if (orderError) throw orderError;
-
-      // 2. Decrement Database Stock strictly for each item
+      // 1. Deduct quantity directly from the `products` table in Supabase
       for (const item of cartItems) {
-        const currentStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
-        const newStock = Math.max(0, currentStock - item.quantity);
+        const currentStock =
+          typeof item.stock === "number"
+            ? item.stock
+            : Number(item.stock || 0);
 
-        await supabase
+        const updatedStock = Math.max(0, currentStock - item.quantity);
+
+        const { error } = await supabase
           .from("products")
-          .update({ stock: newStock })
+          .update({ stock: updatedStock })
           .eq("id", item.id);
+
+        if (error) {
+          console.error(`Failed to update stock for ${item.name}:`, error);
+          throw new Error(`Could not update stock for ${item.name}`);
+        }
       }
 
-      alert("🎉 Order placed successfully!");
+      alert("🎉 Order placed successfully! Product stock has been updated.");
       clearCart();
-      if (setActivePage) setActivePage("orders");
+      if (setActivePage) setActivePage("grocery");
     } catch (err) {
       alert(`Checkout failed: ${err.message}`);
     } finally {
@@ -117,7 +107,10 @@ export default function Cart({
       {/* Cart Items List */}
       <div className="space-y-3">
         {cartItems.map((item) => {
-          const maxStock = typeof item.stock === "number" ? item.stock : Number(item.stock || 0);
+          const maxStock =
+            typeof item.stock === "number"
+              ? item.stock
+              : Number(item.stock || 0);
 
           return (
             <div
@@ -126,7 +119,7 @@ export default function Cart({
             >
               {/* Image & Title */}
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden shrink-0 border border-gray-100">
+                <div className="w-14 h-14 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100">
                   {item.image_url ? (
                     <img
                       src={item.image_url}
@@ -149,7 +142,7 @@ export default function Cart({
                 </div>
               </div>
 
-              {/* Quantity Controls & Total */}
+              {/* Stepper Controls & Price */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button
@@ -178,7 +171,7 @@ export default function Cart({
         })}
       </div>
 
-      {/* Cart Summary Card */}
+      {/* Cart Summary */}
       <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex justify-between items-center text-lg font-black text-gray-900">
           <span>Total</span>
@@ -189,7 +182,7 @@ export default function Cart({
           onClick={handleCheckout}
           className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md text-sm transition-all active:scale-95 disabled:opacity-50"
         >
-          {loading ? "Processing Order..." : "Proceed to Checkout"}
+          {loading ? "Updating Inventory..." : "Proceed to Checkout"}
         </button>
       </div>
     </div>
