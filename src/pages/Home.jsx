@@ -32,7 +32,7 @@ export default function Home({ setActivePage }) {
       {/* History & Vision Section */}
       <section className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 shadow-sm space-y-6">
         <div className="text-center max-w-2xl mx-auto space-y-2">
-          <h2 className="text-3xl font-black text-slate-900">The Story Behind ReReCant</h2>
+          <h2 className="text-3xl font-black text-black-900">The Story Behind ReReCant</h2>
           <p className="text-gray-500 text-sm">Building the future of campus snacking & late-night convenience.</p>
         </div>
 
