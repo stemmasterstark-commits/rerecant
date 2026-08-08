@@ -147,7 +147,7 @@ export default function Cart({
   return (
     <div className="max-w-3xl mx-auto py-6 space-y-6 relative">
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-        <h1 className="text-2xl font-black text-slate-900">Your Cart</h1>
+        <h1 className="text-2xl font-black text-black">Your Cart</h1>
         {cartItems.length > 0 && (
           <button onClick={clearCart} className="text-xs font-semibold text-red-500 hover:underline">
             Clear Cart

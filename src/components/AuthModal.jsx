@@ -105,7 +105,7 @@ export default function AuthModal({ isOpen, onClose }) {
         </button>
 
         {/* Modal Titles */}
-        <h2 className="text-2xl font-black mb-1 text-center text-gray-800">
+        <h2 className="text-2xl font-black mb-1 text-center text-black">
           {mode === "login" && "Welcome Back"}
           {mode === "signup" && "Create Account"}
           {mode === "forgot" && "Reset Password"}

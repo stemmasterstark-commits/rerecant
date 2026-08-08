@@ -40,7 +40,7 @@ export default function Orders() {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-3">
         <div className="text-5xl">📦</div>
-        <h2 className="text-xl font-black text-slate-900">No Orders Yet</h2>
+        <h2 className="text-xl font-black text-black">No Orders Yet</h2>
         <p className="text-xs text-gray-500">
           When you place orders, they will show up here with full details and receipts.
         </p>
@@ -50,7 +50,7 @@ export default function Orders() {
 
   return (
     <div className="max-w-3xl mx-auto py-6 space-y-6">
-      <h1 className="text-2xl font-black text-slate-900 border-b border-gray-100 pb-4">
+      <h1 className="text-2xl font-black text-black border-b border-gray-100 pb-4">
         Order History
       </h1>
 

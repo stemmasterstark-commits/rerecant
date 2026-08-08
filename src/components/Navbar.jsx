@@ -10,16 +10,25 @@ export default function Navbar({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Helper function: Extract username before '@'
+  const getUserDisplayName = () => {
+    if (!user) return "";
+    if (user.displayName) return user.displayName;
+    if (user.email) return user.email.split("@")[0];
+    return "Account";
+  };
+
+  const username = getUserDisplayName();
+
   const handleNavClick = (page) => {
     setActivePage(page);
-    setMobileMenuOpen(false); // Close menu on mobile after clicking
+    setMobileMenuOpen(false);
   };
 
   return (
     <header className="bg-emerald-600 text-white sticky top-0 z-40 shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          
           {/* Logo */}
           <div
             onClick={() => handleNavClick("home")}
@@ -29,13 +38,13 @@ export default function Navbar({
             <span>RERECANT</span>
           </div>
 
-          {/* DESKTOP NAVIGATION (Hidden on mobile) */}
+          {/* DESKTOP NAV */}
           <nav className="hidden md:flex items-center gap-2">
             <button
               onClick={() => handleNavClick("home")}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                 activePage === "home"
-                  ? "bg-emerald-700 text-white shadow-inner"
+                  ? "bg-emerald-700 text-white"
                   : "hover:bg-emerald-500/50"
               }`}
             >
@@ -46,7 +55,7 @@ export default function Navbar({
               onClick={() => handleNavClick("grocery")}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                 activePage === "grocery"
-                  ? "bg-emerald-700 text-white shadow-inner"
+                  ? "bg-emerald-700 text-white"
                   : "hover:bg-emerald-500/50"
               }`}
             >
@@ -57,7 +66,7 @@ export default function Navbar({
               onClick={() => handleNavClick("orders")}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                 activePage === "orders"
-                  ? "bg-emerald-700 text-white shadow-inner"
+                  ? "bg-emerald-700 text-white"
                   : "hover:bg-emerald-500/50"
               }`}
             >
@@ -68,7 +77,7 @@ export default function Navbar({
               onClick={() => handleNavClick("cart")}
               className={`px-3 py-2 rounded-xl text-xs font-bold transition-all relative ${
                 activePage === "cart"
-                  ? "bg-emerald-700 text-white shadow-inner"
+                  ? "bg-emerald-700 text-white"
                   : "hover:bg-emerald-500/50"
               }`}
             >
@@ -80,26 +89,31 @@ export default function Navbar({
               )}
             </button>
 
+            {/* LOGIN / LOGOUT TOGGLE */}
             {user ? (
-              <button
-                onClick={onLogout}
-                className="ml-2 px-4 py-2 bg-white text-emerald-800 hover:bg-gray-100 font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95"
-              >
-                LOGOUT
-              </button>
+              <div className="flex items-center gap-2 ml-2">
+                <span className="text-xs font-bold bg-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-500 capitalize">
+                  👤 {username}
+                </span>
+                <button
+                  onClick={onLogout}
+                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-lg shadow-sm transition-all"
+                >
+                  LOGOUT
+                </button>
+              </div>
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="ml-2 px-4 py-2 bg-white text-emerald-800 hover:bg-gray-100 font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95"
+                className="ml-2 px-4 py-2 bg-white text-emerald-800 hover:bg-gray-100 font-bold text-xs rounded-xl shadow-sm transition-all"
               >
                 LOGIN
               </button>
             )}
           </nav>
 
-          {/* MOBILE TOGGLE BUTTON (Hamburger) */}
+          {/* MOBILE TOGGLE & CART BUTTON */}
           <div className="flex items-center md:hidden gap-2">
-            {/* Quick Cart Button for Mobile */}
             <button
               onClick={() => handleNavClick("cart")}
               className="p-2 bg-emerald-700 rounded-lg text-xs font-bold relative"
@@ -112,31 +126,15 @@ export default function Navbar({
               )}
             </button>
 
-            {/* Hamburger Icon */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg hover:bg-emerald-500 focus:outline-none"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 {mobileMenuOpen ? (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 ) : (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 )}
               </svg>
             </button>
@@ -146,61 +144,56 @@ export default function Navbar({
 
       {/* MOBILE DROPDOWN MENU */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-emerald-700 border-t border-emerald-600 px-4 pt-2 pb-4 space-y-2 animate-fadeIn">
+        <div className="md:hidden bg-emerald-700 border-t border-emerald-600 px-4 pt-2 pb-4 space-y-2">
           <button
             onClick={() => handleNavClick("home")}
-            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
-              activePage === "home" ? "bg-emerald-800 text-white" : ""
-            }`}
+            className="block w-full text-left px-3 py-2 rounded-xl text-xs font-bold"
           >
             HOME
           </button>
-
           <button
             onClick={() => handleNavClick("grocery")}
-            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
-              activePage === "grocery" ? "bg-emerald-800 text-white" : ""
-            }`}
+            className="block w-full text-left px-3 py-2 rounded-xl text-xs font-bold"
           >
             GROCERY STORE
           </button>
-
           <button
             onClick={() => handleNavClick("orders")}
-            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
-              activePage === "orders" ? "bg-emerald-800 text-white" : ""
-            }`}
+            className="block w-full text-left px-3 py-2 rounded-xl text-xs font-bold"
           >
             ORDERS
           </button>
-
           <button
             onClick={() => handleNavClick("cart")}
-            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
-              activePage === "cart" ? "bg-emerald-800 text-white" : ""
-            }`}
+            className="block w-full text-left px-3 py-2 rounded-xl text-xs font-bold"
           >
             CART ({cartCount})
           </button>
 
+          {/* MOBILE LOGIN / USER STATUS */}
           <div className="pt-2 border-t border-emerald-600">
             {user ? (
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  onLogout();
-                }}
-                className="w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl shadow-sm text-center"
-              >
-                LOGOUT
-              </button>
+              <div className="space-y-2">
+                <div className="px-3 py-2 text-xs font-bold text-emerald-100 capitalize">
+                  Logged in as: <span className="text-amber-300">{username}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                  className="w-full py-2 bg-red-500 text-white font-bold text-xs rounded-xl text-center"
+                >
+                  LOGOUT
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   onOpenAuth();
                 }}
-                className="w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl shadow-sm text-center"
+                className="w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl text-center"
               >
                 LOGIN
               </button>
