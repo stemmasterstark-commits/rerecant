@@ -33,7 +33,7 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black text-gray-900">Grocery Store</h2>
+        <h2 className="text-2xl font-black text-slate-900">Grocery Store</h2>
         <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
           {products.length} Products Available
         </span>
