@@ -1,111 +1,213 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "../services/supabase";
-import AuthModal from "./AuthModal";
+import React, { useState } from "react";
 
-export default function Navbar({ activePage = "home", setActivePage, cartCount = 0 }) {
-  const [user, setUser] = useState(null);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
+export default function Navbar({
+  activePage,
+  setActivePage,
+  cartCount,
+  onOpenAuth,
+  user,
+  onLogout,
+}) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => authListener.subscription.unsubscribe();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleNavClick = (page) => {
+    setActivePage(page);
+    setMobileMenuOpen(false); // Close menu on mobile after clicking
   };
 
   return (
-    <>
-      <header className="sticky top-0 z-40 bg-emerald-600 text-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="bg-emerald-600 text-white sticky top-0 z-40 shadow-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           
           {/* Logo */}
-          <div 
-            onClick={() => setActivePage && setActivePage("home")}
-            className="flex items-center gap-2 text-2xl font-black tracking-wide cursor-pointer hover:opacity-90 transition"
+          <div
+            onClick={() => handleNavClick("home")}
+            className="flex items-center gap-2 cursor-pointer font-black text-xl tracking-tight"
           >
-            🛒 ReReCant
+            <span className="text-2xl">🛒</span>
+            <span>RERECANT</span>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="flex items-center gap-1 sm:gap-3">
+          {/* DESKTOP NAVIGATION (Hidden on mobile) */}
+          <nav className="hidden md:flex items-center gap-2">
             <button
-              onClick={() => setActivePage("home")}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
-                activePage === "home" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => handleNavClick("home")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activePage === "home"
+                  ? "bg-emerald-700 text-white shadow-inner"
+                  : "hover:bg-emerald-500/50"
               }`}
             >
-              Home
+              HOME
             </button>
 
             <button
-              onClick={() => setActivePage("grocery")}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
-                activePage === "grocery" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => handleNavClick("grocery")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activePage === "grocery"
+                  ? "bg-emerald-700 text-white shadow-inner"
+                  : "hover:bg-emerald-500/50"
               }`}
             >
-              Grocery Store
+              GROCERY STORE
             </button>
 
             <button
-              onClick={() => setActivePage("orders")}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
-                activePage === "orders" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => handleNavClick("orders")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                activePage === "orders"
+                  ? "bg-emerald-700 text-white shadow-inner"
+                  : "hover:bg-emerald-500/50"
               }`}
             >
-              Orders
+              ORDERS
             </button>
 
             <button
-              onClick={() => setActivePage("cart")}
-              className={`relative px-3.5 py-1.5 rounded-full text-sm font-semibold transition ${
-                activePage === "cart" ? "bg-emerald-800 text-white font-bold" : "text-emerald-100 hover:bg-emerald-500"
+              onClick={() => handleNavClick("cart")}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all relative ${
+                activePage === "cart"
+                  ? "bg-emerald-700 text-white shadow-inner"
+                  : "hover:bg-emerald-500/50"
               }`}
             >
-              Cart
+              CART
               {cartCount > 0 && (
-                <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold leading-none text-emerald-800 bg-white rounded-full">
+                <span className="ml-1.5 px-1.5 py-0.5 bg-amber-400 text-gray-900 font-extrabold text-[10px] rounded-full">
                   {cartCount}
                 </span>
               )}
             </button>
-          </nav>
 
-          {/* Auth Button */}
-          <div>
             {user ? (
-              <div className="flex items-center gap-3 bg-emerald-700 border border-emerald-500/50 rounded-full py-1 px-3.5">
-                <span className="text-xs font-semibold text-emerald-100 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-                  {user.email?.split("@")[0]}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="text-xs text-red-200 hover:text-white font-bold pl-2 border-l border-emerald-500"
-                >
-                  Logout
-                </button>
-              </div>
+              <button
+                onClick={onLogout}
+                className="ml-2 px-4 py-2 bg-white text-emerald-800 hover:bg-gray-100 font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95"
+              >
+                LOGOUT
+              </button>
             ) : (
               <button
-                onClick={() => setIsAuthOpen(true)}
-                className="px-4 py-1.5 bg-white text-emerald-700 hover:bg-emerald-50 font-bold text-sm rounded-full shadow transition active:scale-95"
+                onClick={onOpenAuth}
+                className="ml-2 px-4 py-2 bg-white text-emerald-800 hover:bg-gray-100 font-bold text-xs rounded-xl shadow-sm transition-all active:scale-95"
               >
-                Login
+                LOGIN
+              </button>
+            )}
+          </nav>
+
+          {/* MOBILE TOGGLE BUTTON (Hamburger) */}
+          <div className="flex items-center md:hidden gap-2">
+            {/* Quick Cart Button for Mobile */}
+            <button
+              onClick={() => handleNavClick("cart")}
+              className="p-2 bg-emerald-700 rounded-lg text-xs font-bold relative"
+            >
+              🛒
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-amber-400 text-gray-900 text-[10px] rounded-full font-black">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* Hamburger Icon */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg hover:bg-emerald-500 focus:outline-none"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                {mobileMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MOBILE DROPDOWN MENU */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-emerald-700 border-t border-emerald-600 px-4 pt-2 pb-4 space-y-2 animate-fadeIn">
+          <button
+            onClick={() => handleNavClick("home")}
+            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
+              activePage === "home" ? "bg-emerald-800 text-white" : ""
+            }`}
+          >
+            HOME
+          </button>
+
+          <button
+            onClick={() => handleNavClick("grocery")}
+            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
+              activePage === "grocery" ? "bg-emerald-800 text-white" : ""
+            }`}
+          >
+            GROCERY STORE
+          </button>
+
+          <button
+            onClick={() => handleNavClick("orders")}
+            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
+              activePage === "orders" ? "bg-emerald-800 text-white" : ""
+            }`}
+          >
+            ORDERS
+          </button>
+
+          <button
+            onClick={() => handleNavClick("cart")}
+            className={`block w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold ${
+              activePage === "cart" ? "bg-emerald-800 text-white" : ""
+            }`}
+          >
+            CART ({cartCount})
+          </button>
+
+          <div className="pt-2 border-t border-emerald-600">
+            {user ? (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onLogout();
+                }}
+                className="w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl shadow-sm text-center"
+              >
+                LOGOUT
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  onOpenAuth();
+                }}
+                className="w-full py-2.5 bg-white text-emerald-800 font-bold text-xs rounded-xl shadow-sm text-center"
+              >
+                LOGIN
               </button>
             )}
           </div>
-
         </div>
-      </header>
-
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
-    </>
+      )}
+    </header>
   );
 }
