@@ -4,31 +4,39 @@ import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import ProductGrid from "./components/ProductGrid";
-import AuthModal from "./components/AuthModal"; // 👈 1. Imported AuthModal
+import AuthModal from "./components/AuthModal";
 
 export default function App() {
   const [activePage, setActivePage] = useState("home");
   const [cartItems, setCartItems] = useState([]);
-  
-  // 👈 2. Added modal visibility state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  // 1. User state (Set this when user logs in via AuthModal or Auth Provider)
+  const [user, setUser] = useState(null); 
+  // Example user object: { email: "johndoe@gmail.com", name: "John" }
 
   const clearCart = () => setCartItems([]);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
+  const handleLogout = () => {
+    setUser(null); // Clear user state on logout
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      {/* 👈 3. AuthModal placed at app root level */}
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
+        onLoginSuccess={(loggedInUser) => setUser(loggedInUser)} // Set user on login
       />
 
       <Navbar
         activePage={activePage}
         setActivePage={setActivePage}
         cartCount={cartCount}
-        onOpenAuth={() => setIsAuthOpen(true)} // Passed down in case your header login button uses it
+        onOpenAuth={() => setIsAuthOpen(true)}
+        user={user} // 👈 Passed down user object
+        onLogout={handleLogout} // 👈 Passed down logout handler
       />
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -42,7 +50,8 @@ export default function App() {
             setCartItems={setCartItems}
             clearCart={clearCart}
             setActivePage={setActivePage}
-            onOpenAuth={() => setIsAuthOpen(true)} // 👈 4. Connected "Login to Checkout" button here!
+            onOpenAuth={() => setIsAuthOpen(true)}
+            user={user}
           />
         )}
         {activePage === "orders" && <Orders setActivePage={setActivePage} />}
