@@ -1,24 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "../services/supabase"; // Adjust path to your supabase.js if needed
 
 export default function Navbar({
   activePage,
   setActivePage,
   cartCount,
   onOpenAuth,
-  user,
-  onLogout,
 }) {
+  const [user, setUser] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Helper function: Extract username before '@'
-  const getUserDisplayName = () => {
-    if (!user) return "";
-    if (user.displayName) return user.displayName;
-    if (user.email) return user.email.split("@")[0];
-    return "Account";
+  // 🔒 Live Auth Listener to detect Login & Logout automatically
+  useEffect(() => {
+    // 1. Fetch initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+
+    // 2. Listen for login/logout events in real-time
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Handle Logout
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
   };
 
-  const username = getUserDisplayName();
+  // Helper: Get username before '@'
+  const username = user?.email ? user.email.split("@")[0] : "";
 
   const handleNavClick = (page) => {
     setActivePage(page);
@@ -26,13 +42,13 @@ export default function Navbar({
   };
 
   return (
-    <header className="bg-emerald-600 text-white sticky top-0 z-40 shadow-md">
+    <header className="bg-emerald-600 text-white sticky top-0 z-50 shadow-md w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div
             onClick={() => handleNavClick("home")}
-            className="flex items-center gap-2 cursor-pointer font-black text-xl tracking-tight"
+            className="flex items-center gap-2 cursor-pointer font-black text-xl tracking-tight shrink-0"
           >
             <span className="text-2xl">🛒</span>
             <span>RERECANT</span>
@@ -89,15 +105,15 @@ export default function Navbar({
               )}
             </button>
 
-            {/* LOGIN / LOGOUT TOGGLE */}
+            {/* 👤 LOGIN / LOGOUT TOGGLE */}
             {user ? (
               <div className="flex items-center gap-2 ml-2">
-                <span className="text-xs font-bold bg-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-500 capitalize">
+                <span className="text-xs font-bold bg-emerald-700 px-3 py-2 rounded-xl border border-emerald-500 capitalize max-w-35 truncate">
                   👤 {username}
                 </span>
                 <button
-                  onClick={onLogout}
-                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-lg shadow-sm transition-all"
+                  onClick={handleLogout}
+                  className="px-3 py-2 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl shadow-sm transition-all"
                 >
                   LOGOUT
                 </button>
@@ -112,7 +128,7 @@ export default function Navbar({
             )}
           </nav>
 
-          {/* MOBILE TOGGLE & CART BUTTON */}
+          {/* MOBILE CONTROLS */}
           <div className="flex items-center md:hidden gap-2">
             <button
               onClick={() => handleNavClick("cart")}
@@ -142,7 +158,7 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* MOBILE DROPDOWN MENU */}
+      {/* MOBILE MENU DROPDOWN */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-emerald-700 border-t border-emerald-600 px-4 pt-2 pb-4 space-y-2">
           <button
@@ -170,17 +186,17 @@ export default function Navbar({
             CART ({cartCount})
           </button>
 
-          {/* MOBILE LOGIN / USER STATUS */}
+          {/* Mobile Login / User Status */}
           <div className="pt-2 border-t border-emerald-600">
             {user ? (
               <div className="space-y-2">
-                <div className="px-3 py-2 text-xs font-bold text-emerald-100 capitalize">
-                  Logged in as: <span className="text-amber-300">{username}</span>
+                <div className="px-3 py-1 text-xs font-bold text-emerald-100 truncate capitalize">
+                  Logged in as: <span className="text-amber-300 font-extrabold">{username}</span>
                 </div>
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    onLogout();
+                    handleLogout();
                   }}
                   className="w-full py-2 bg-red-500 text-white font-bold text-xs rounded-xl text-center"
                 >
