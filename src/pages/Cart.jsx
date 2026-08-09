@@ -64,6 +64,8 @@ export default function Cart({
       image_url: item.image_url || null,
     }));
 
+    // 1. Insert order into Supabase
+    // (PostgreSQL Trigger automatically handles stock reduction on INSERT)
     const { error: orderError } = await supabase.from("orders").insert([
       {
         user_id: currentUser.id,
@@ -74,18 +76,10 @@ export default function Cart({
       },
     ]);
 
-    if (orderError) console.error("Order error:", orderError);
-
-    for (const item of cartItems) {
-      const currentStock =
-        typeof item.stock === "number"
-          ? item.stock
-          : Number(item.stock || 0);
-
-      await supabase
-        .from("products")
-        .update({ stock: Math.max(0, currentStock - item.quantity) })
-        .eq("id", item.id);
+    if (orderError) {
+      console.error("Order insertion error:", orderError);
+      alert("Payment processed, but order creation failed: " + orderError.message);
+      return;
     }
 
     setCompletedOrder({ items: orderItems, total: totalAmount, paymentId });
@@ -97,7 +91,7 @@ export default function Cart({
     setLoading(true);
 
     const { data: { session } } = await supabase.auth.getSession();
-    const activeUser = session?.user;
+    const activeUser = session?.user || user;
 
     if (!activeUser) {
       setLoading(false);
@@ -119,6 +113,12 @@ export default function Cart({
         name: "ReReCant Canteen",
         description: "Grocery & Snack Purchase",
         image: "https://cdn-icons-png.flaticon.com/512/3081/3081559.png",
+        
+        // Pass metadata to Razorpay as backup
+        notes: {
+          user_id: activeUser.id,
+        },
+
         handler: async function (response) {
           try {
             await processSuccessfulOrder(response.razorpay_payment_id, activeUser);
@@ -128,15 +128,26 @@ export default function Cart({
             setLoading(false);
           }
         },
+
         prefill: {
           name: activeUser.user_metadata?.full_name || activeUser.email?.split("@")[0] || "Student",
           email: activeUser.email,
         },
         theme: { color: "#059669" },
-        modal: { ondismiss: () => setLoading(false) },
+        modal: { 
+          ondismiss: () => setLoading(false) 
+        },
       };
 
       const razorpayInstance = new window.Razorpay(options);
+      
+      // Catch payment failures
+      razorpayInstance.on("payment.failed", function (response) {
+        console.error("Payment failed:", response.error);
+        alert("Payment Failed: " + response.error.description);
+        setLoading(false);
+      });
+
       razorpayInstance.open();
     } catch (err) {
       alert(`Checkout Error: ${err.message}`);
