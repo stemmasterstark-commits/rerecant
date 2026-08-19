@@ -11,10 +11,16 @@ export default function ProductGrid({ cartItems = [], setCartItems }) {
       const { data, error } = await supabase
         .from("products")
         .select("*")
+        .gt('stock', 0)
         .order("id", { ascending: true });
 
       if (!error) {
-        setProducts(data || []);
+        // Defensive client-side filter: ensure we only show products with positive stock.
+        const filtered = (data || []).filter((p) => {
+          const stock = typeof p.stock === "number" ? p.stock : Number(p.stock || 0);
+          return stock > 0;
+        });
+        setProducts(filtered);
       }
       setLoading(false);
     }
