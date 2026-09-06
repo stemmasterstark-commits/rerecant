@@ -5,19 +5,20 @@ export default function ProductCard({
   cartItems = [],
   setCartItems,
 }) {
-  // STRICT: Read exact 'stock' column from Supabase table. Default to 0 if missing.
-  const stockLimit = typeof product.stock === "number" ? product.stock : Number(product.stock || 0);
+  // Safe Fallback: Checks both 'stock' and 'quantity' DB columns
+  const rawStock = product.stock ?? product.quantity ?? 0;
+  const stockLimit = typeof rawStock === "number" ? rawStock : Number(rawStock || 0);
 
-  // Check how many units of this item are currently in user's cart
+  // Find quantity of current product already in cart
   const inCartItem = cartItems.find((item) => item.id === product.id);
   const currentInCartCount = inCartItem ? inCartItem.quantity : 0;
 
   const isOutOfStock = stockLimit <= 0;
   const isMaxReached = currentInCartCount >= stockLimit;
 
-  // Quantity Handlers
+  // Add Item to Cart Handler
   const handleIncrease = () => {
-    if (isMaxReached || isOutOfStock) return;
+    if (isMaxReached || isOutOfStock || !setCartItems) return;
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -28,12 +29,13 @@ export default function ProductCard({
             : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: 1, stock: stockLimit }];
     });
   };
 
+  // Remove Item from Cart Handler
   const handleDecrease = () => {
-    if (currentInCartCount <= 0) return;
+    if (currentInCartCount <= 0 || !setCartItems) return;
 
     setCartItems((prev) =>
       prev
@@ -69,10 +71,10 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Product Title */}
+        {/* Product Details */}
         <h3 className="font-bold text-gray-800 text-base mb-1">{product.name}</h3>
 
-        {/* Real DB Stock Badge */}
+        {/* Stock Status Badge */}
         <div className="flex items-center gap-1.5 mb-3">
           <span
             className={`w-2 h-2 rounded-full ${
@@ -101,7 +103,7 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* Price & Stepper Button */}
+      {/* Pricing & Add/Stepper Actions */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
         <span className="text-lg font-black text-emerald-600">
           ₹{product.price}
@@ -115,12 +117,12 @@ export default function ProductCard({
             Out of Stock
           </button>
         ) : currentInCartCount > 0 ? (
-          /* Plus/Minus Stepper Controls */
+          /* Plus / Minus Stepper */
           <div className="flex items-center bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden shadow-sm">
             <button
               type="button"
               onClick={handleDecrease}
-              className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black text-sm transition-all"
+              className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black text-sm transition-all cursor-pointer"
             >
               -
             </button>
@@ -131,17 +133,17 @@ export default function ProductCard({
               type="button"
               disabled={isMaxReached}
               onClick={handleIncrease}
-              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               +
             </button>
           </div>
         ) : (
-          /* Initial Add Button */
+          /* Active Add to Cart Button */
           <button
             type="button"
             onClick={handleIncrease}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md shadow-emerald-100 transition-all active:scale-95 cursor-pointer"
           >
             Add to Cart
           </button>
