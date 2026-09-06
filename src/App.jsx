@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import AuthModal from "./components/AuthModal";
 import GroceryStore from "./pages/GroceryStore"; 
+import { supabase } from "./services/supabase"; // Ensure path matches your project setup
 
 export default function App() {
   const [activePage, setActivePage] = useState("home");
@@ -14,10 +15,26 @@ export default function App() {
   // User state
   const [user, setUser] = useState(null); 
 
+  // Sync Supabase Auth state on initial render and on auth changes
+  useEffect(() => {
+    // 1. Get current active session from Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // 2. Listen for auth changes (login, logout, token refreshes)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   const clearCart = () => setCartItems([]);
   const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null); // Clear user state on logout
   };
 
@@ -41,15 +58,15 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {activePage === "home" && <Home setActivePage={setActivePage} />}
         
-        {/* Updated to render GroceryStore with selection and single-store guard */}
         {activePage === "grocery" && (
-  <GroceryStore
-    cartItems={cartItems}
-    setCartItems={setCartItems}
-    setActivePage={setActivePage}
-    user={user} //  Pass the logged-in user object here
-  />
-)}
+          <GroceryStore
+            cartItems={cartItems}
+            setCartItems={setCartItems}
+            setActivePage={setActivePage}
+            user={user}
+          />
+        )}
+
         {activePage === "cart" && (
           <Cart
             cartItems={cartItems}

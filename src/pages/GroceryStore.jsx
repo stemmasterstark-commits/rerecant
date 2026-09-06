@@ -8,7 +8,7 @@ const STORE_MAP = {
 };
 
 // Defined Admin Email Guard
-const ADMIN_EMAIL = "Stemmasterstark@gmail.com";
+const ADMIN_EMAIL = "stemmasterstark@gmail.com";
 
 export default function GroceryStore({ cartItems = [], setCartItems, user }) {
   const [selectedStore, setSelectedStore] = useState(
