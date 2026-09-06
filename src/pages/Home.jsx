@@ -19,7 +19,7 @@ export default function Home({ setActivePage, user }) {
 
   const fetchStoreStatuses = async () => {
     const { data, error } = await supabase.from("store_status").select("*");
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       const statusObj = { Omega: true, Nmega: true };
       data.forEach((item) => {
         statusObj[item.id] = item.is_open;
@@ -28,7 +28,6 @@ export default function Home({ setActivePage, user }) {
     }
   };
 
-  // Fixed Toggle Handler: Prevents state reversion
   const toggleStoreStatus = async (storeCode) => {
     if (!isAdmin || isUpdating) return;
     setIsUpdating(true);
@@ -36,25 +35,30 @@ export default function Home({ setActivePage, user }) {
     const currentStatus = storeStatus[storeCode] !== false;
     const newStatus = !currentStatus;
 
-    // Optimistic UI Update
+    // 1. Optimistic local state update
     setStoreStatus((prev) => ({ ...prev, [storeCode]: newStatus }));
 
+    // 2. Perform explicit update query in Supabase
     const { error } = await supabase
       .from("store_status")
       .upsert({ id: storeCode, is_open: newStatus }, { onConflict: "id" });
 
     if (error) {
-      console.error("Failed to update store status:", error);
-      await fetchStoreStatuses(); // Revert back on database error
+      console.error("Supabase toggle error:", error.message);
+      alert(`Failed to update ${storeCode}: ${error.message}`);
+      // Revert local state on database error
+      setStoreStatus((prev) => ({ ...prev, [storeCode]: currentStatus }));
     } else {
-      await fetchStoreStatuses(); // Re-sync clean DB state
+      // Re-fetch to ensure remote parity
+      await fetchStoreStatuses();
     }
+
     setIsUpdating(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Hero Banner */}
+      {/* Hero Section */}
       <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white py-16 px-6 text-center shadow-lg">
         <div className="max-w-3xl mx-auto space-y-4 flex flex-col items-center justify-center">
           <span className="text-xs font-black uppercase tracking-widest bg-emerald-500/30 px-3 py-1 rounded-full text-emerald-100 border border-emerald-400/30 text-center">
@@ -102,7 +106,7 @@ export default function Home({ setActivePage, user }) {
         </div>
       </div>
 
-      {/* ⚡ CENTERED ADMIN CONTROL PANEL (Only visible to admin email on Home page) */}
+      {/* ⚡ CENTERED ADMIN CONTROL PANEL */}
       {isAdmin && (
         <div className="max-w-xl mx-auto mt-10 px-4">
           <div className="p-6 bg-slate-900 text-white rounded-3xl space-y-4 shadow-xl border border-slate-800 flex flex-col items-center text-center">
@@ -115,7 +119,7 @@ export default function Home({ setActivePage, user }) {
               </span>
             </div>
 
-            <p className="text-xs text-slate-400 max-w-xs">
+            <p className="text-xs text-slate-400 max-w-xs text-center">
               Toggle stores open or closed in real-time for all customers.
             </p>
 
@@ -127,7 +131,7 @@ export default function Home({ setActivePage, user }) {
                     key={store}
                     disabled={isUpdating}
                     onClick={() => toggleStoreStatus(store)}
-                    className={`py-3 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md border ${
+                    className={`py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md border ${
                       isOpen
                         ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500"
                         : "bg-red-600/90 hover:bg-red-500 text-white border-red-500"
