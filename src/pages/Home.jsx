@@ -62,13 +62,13 @@ export default function Home({ setActivePage, user }) {
       <div className="bg-gradient-to-br from-emerald-600 to-emerald-800 text-white py-16 px-6 text-center shadow-lg">
         <div className="max-w-3xl mx-auto space-y-4 flex flex-col items-center justify-center">
           <span className="text-xs font-black uppercase tracking-widest bg-emerald-500/30 px-3 py-1 rounded-full text-emerald-100 border border-emerald-400/30 text-center">
-            Hostel Delivery Service
+            Hostel Self Delivery Service
           </span>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-center">
-            Snacks & Essentials, Delivered Fast.
+            Get Your Snacks Self-Delivered Fast.
           </h1>
           <p className="text-sm sm:text-base text-emerald-100 max-w-xl mx-auto font-medium text-center">
-            Get instant hostel room delivery from your nearest dark store in minutes.
+            Get it instantly self delivered to your room from your nearest dark store in minutes.
           </p>
           <div className="pt-4 flex justify-center">
             <button
@@ -87,7 +87,7 @@ export default function Home({ setActivePage, user }) {
           <div className="text-3xl">⚡</div>
           <div className="flex flex-col items-center">
             <h3 className="font-bold text-gray-900 text-sm">Ultra Fast</h3>
-            <p className="text-xs text-gray-500">Delivered directly to your block</p>
+            <p className="text-xs text-gray-500">Get it Self-Delivered directly to your room</p>
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-center gap-4 text-center">

@@ -7,8 +7,10 @@ const STORE_MAP = {
   Nmega: "New Mega",
 };
 
-// Defined Admin Email Guard
-const ADMIN_EMAIL = "stemmasterstark@gmail.com";
+const ADMIN_EMAILS = [
+  "stemmastersstark@gmail.com",
+  "stemmasterstark@gmail.com",
+];
 
 export default function GroceryStore({ cartItems = [], setCartItems, user }) {
   const [selectedStore, setSelectedStore] = useState(
@@ -17,8 +19,10 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [storeStatus, setStoreStatus] = useState({ Omega: true, Nmega: true });
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAdmin =
+    user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   useEffect(() => {
     fetchStoreStatuses();
@@ -33,8 +37,8 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
 
   const fetchStoreStatuses = async () => {
     const { data, error } = await supabase.from("store_status").select("*");
-    if (!error && data) {
-      const statusObj = {};
+    if (!error && data && data.length > 0) {
+      const statusObj = { Omega: true, Nmega: true };
       data.forEach((item) => {
         statusObj[item.id] = item.is_open;
       });
@@ -43,7 +47,8 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
   };
 
   const toggleStoreStatus = async (storeCode) => {
-    if (!isAdmin) return;
+    if (!isAdmin || isUpdating) return;
+    setIsUpdating(true);
 
     const currentStatus = storeStatus[storeCode] !== false;
     const newStatus = !currentStatus;
@@ -52,12 +57,16 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
 
     const { error } = await supabase
       .from("store_status")
-      .upsert({ id: storeCode, is_open: newStatus });
+      .upsert({ id: storeCode, is_open: newStatus }, { onConflict: "id" });
 
     if (error) {
-      console.error("Failed to update store status:", error);
-      fetchStoreStatuses();
+      console.error("Supabase toggle error:", error.message);
+      setStoreStatus((prev) => ({ ...prev, [storeCode]: currentStatus }));
+    } else {
+      await fetchStoreStatuses();
     }
+
+    setIsUpdating(false);
   };
 
   const fetchProducts = async (dbStoreValue) => {
@@ -94,53 +103,61 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
     handleSelectStore(nextStore);
   };
 
-  // Reusable Owner Panel Component
+  // ⚡ CENTERED ADMIN CONTROL PANEL COMPONENT
   const AdminControlPanel = () => {
     if (!isAdmin) return null;
 
     return (
-      <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 shadow-lg border border-slate-800">
-        <div className="flex justify-between items-center">
-          <span className="text-xs font-black tracking-wider uppercase text-emerald-400">
-            ⚡ Admin Store Control
-          </span>
-          <span className="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
-            {user.email}
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          {["Omega", "Nmega"].map((store) => {
-            const isOpen = storeStatus[store] !== false;
-            return (
-              <button
-                key={store}
-                onClick={() => toggleStoreStatus(store)}
-                className={`py-2.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex justify-between items-center ${
-                  isOpen
-                    ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                    : "bg-red-600/80 hover:bg-red-500 text-white"
-                }`}
-              >
-                <span>{store}</span>
-                <span className="bg-black/20 px-2 py-0.5 rounded text-[10px] uppercase">
-                  {isOpen ? "OPEN" : "CLOSED"}
-                </span>
-              </button>
-            );
-          })}
+      <div className="max-w-xl mx-auto mt-10 px-4">
+        <div className="p-6 bg-slate-900 text-white rounded-3xl space-y-4 shadow-xl border border-slate-800 flex flex-col items-center justify-center text-center">
+          <div className="flex flex-col items-center justify-center space-y-1 w-full text-center">
+            <span className="text-xs font-black tracking-widest uppercase text-emerald-400 text-center">
+              ⚡ Admin Store Control
+            </span>
+            <span className="text-[11px] font-medium bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700 text-center">
+              {user.email}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-400 max-w-xs text-center">
+            Toggle stores open or closed in real-time.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 w-full pt-2">
+            {["Omega", "Nmega"].map((store) => {
+              const isOpen = storeStatus[store] !== false;
+              return (
+                <button
+                  key={store}
+                  disabled={isUpdating}
+                  onClick={() => toggleStoreStatus(store)}
+                  className={`py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md border ${
+                    isOpen
+                      ? "bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-500"
+                      : "bg-red-600/90 hover:bg-red-500 text-white border-red-500"
+                  } ${isUpdating ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <span className="font-bold text-sm text-center">{store}</span>
+                  <span className="bg-black/30 px-2.5 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase">
+                    {isOpen ? "OPEN" : "CLOSED"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
   };
 
-  // 1️⃣ STORE SELECTION VIEW
+  // 1️⃣ INITIAL STORE SELECTION VIEW
   if (!selectedStore) {
     return (
-      <div className="max-w-xl mx-auto py-12 px-4 space-y-6">
-        <div className="text-center space-y-2">
+      <div className="max-w-xl mx-auto py-12 px-4 space-y-6 text-center">
+        <div className="text-center space-y-2 flex flex-col items-center justify-center">
           <div className="text-6xl">🏪</div>
-          <h1 className="text-2xl font-black text-gray-900">Choose Your Store</h1>
-          <p className="text-xs text-gray-500">
+          <h1 className="text-2xl font-black text-gray-900 text-center">Choose Your Store</h1>
+          <p className="text-xs text-gray-500 text-center">
             Select your hostel dark store location to browse available items.
           </p>
         </div>
@@ -179,7 +196,6 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
           })}
         </div>
 
-        {/* Render Admin Panel if logged in as Admin */}
         <AdminControlPanel />
       </div>
     );
@@ -191,7 +207,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
 
   return (
     <div className="max-w-7xl mx-auto p-4 pb-20 space-y-6">
-      {/* Active Dark Store Banner */}
+      {/* Store Banner */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
         <div>
           <div className="flex items-center gap-2">
@@ -208,7 +224,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
               {isCurrentStoreOpen ? "Open" : "Currently Closed"}
             </span>
           </div>
-          <h1 className="text-xl font-black text-black! mt-1">{selectedStore}</h1>
+          <h1 className="text-xl font-black text-gray-900 mt-1">{selectedStore}</h1>
         </div>
 
         <button
@@ -220,27 +236,29 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
         </button>
       </div>
 
-      {/* CLOSED STORE NOTICE */}
+      {/* 🎯 PERFECTLY CENTERED CLOSED STORE NOTICE */}
       {!isCurrentStoreOpen ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-red-100 p-6 space-y-3">
+        <div className="py-16 bg-white rounded-2xl border border-red-100 p-6 flex flex-col items-center justify-center text-center space-y-3">
           <div className="text-5xl">🌙</div>
-          <h2 className="text-lg font-black text-gray-900">{selectedStore} is Currently Closed</h2>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+          <h2 className="text-xl font-black text-gray-900 text-center">
+            {selectedStore} is Currently Closed
+          </h2>
+          <p className="text-xs text-gray-500 max-w-sm text-center">
             This dark store is currently not taking orders. Please check back later or switch to another active store.
           </p>
           <button
             onClick={handleToggleStore}
-            className="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
+            className="px-5 py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow-md hover:bg-emerald-700 transition-all cursor-pointer text-center"
           >
             Switch to {alternateStore}
           </button>
         </div>
       ) : loading ? (
-        <div className="py-16 text-center text-xs text-emerald-600 font-bold">
+        <div className="py-16 text-center text-xs text-emerald-600 font-bold flex justify-center">
           Loading catalog for {selectedStore}...
         </div>
       ) : products.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100 text-gray-500 text-sm">
+        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100 text-gray-500 text-sm flex justify-center">
           No items currently available in {selectedStore}.
         </div>
       ) : (
@@ -256,7 +274,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
         </div>
       )}
 
-      {/* Render Admin Panel if logged in as Admin */}
+      {/* Admin Panel */}
       <AdminControlPanel />
     </div>
   );
