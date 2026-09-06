@@ -56,7 +56,7 @@ export default function App() {
       />
 
       <main className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        {activePage === "home" && <Home setActivePage={setActivePage} />}
+        {activePage === "home" && <Home setActivePage={setActivePage} user={user} />}
         
         {activePage === "grocery" && (
           <GroceryStore
