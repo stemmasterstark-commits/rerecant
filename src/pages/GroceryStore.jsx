@@ -224,7 +224,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
               {isCurrentStoreOpen ? "Open" : "Currently Closed"}
             </span>
           </div>
-          <h1 className="text-xl font-black text-gray-900 mt-1">{selectedStore}</h1>
+          <h1 className="text-xl font-black text-black! mt-1">{selectedStore}</h1>
         </div>
 
         <button
@@ -240,7 +240,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
       {!isCurrentStoreOpen ? (
         <div className="py-16 bg-white rounded-2xl border border-red-100 p-6 flex flex-col items-center justify-center text-center space-y-3">
           <div className="text-5xl">🌙</div>
-          <h2 className="text-xl font-black text-gray-900 text-center">
+          <h2 className="text-xl font-black text-black! text-center">
             {selectedStore} is Currently Closed
           </h2>
           <p className="text-xs text-gray-500 max-w-sm text-center">
@@ -273,9 +273,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
           ))}
         </div>
       )}
-
-      {/* Admin Panel */}
-      <AdminControlPanel />
+       
     </div>
   );
 }
