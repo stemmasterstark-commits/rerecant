@@ -10,7 +10,7 @@ export default function Home({ setActivePage }) {
             Hostel Self-Delivery Service
           </span>
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight">
-            Snacks & More, Get Self Delivered Fast.
+            Get Your Snacks Self Delivered Fast.
           </h1>
           <p className="text-sm sm:text-base text-emerald-100 max-w-xl mx-auto font-medium">
             Get it instantly self delivered to your room from your nearest dark store in minutes.

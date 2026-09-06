@@ -206,7 +206,7 @@ export default function Cart({
     <div className="max-w-3xl mx-auto py-6 space-y-6 relative px-4">
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-black">Your Cart</h1>
+          <h1 className="text-2xl font-black text-black!">Your Cart</h1>
           <p className="text-xs text-gray-500 font-medium">
             Fulfilling from:{" "}
             <span className="font-bold text-emerald-600">
