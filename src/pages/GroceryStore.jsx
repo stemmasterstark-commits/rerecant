@@ -8,7 +8,7 @@ const STORE_MAP = {
 };
 
 // Defined Admin Email Guard
-const ADMIN_EMAIL = "stemmastersstark@gmail.com";
+const ADMIN_EMAIL = "Stemmastersstark@gmail.com";
 
 export default function GroceryStore({ cartItems = [], setCartItems, user }) {
   const [selectedStore, setSelectedStore] = useState(
@@ -208,7 +208,7 @@ export default function GroceryStore({ cartItems = [], setCartItems, user }) {
               {isCurrentStoreOpen ? "Open" : "Currently Closed"}
             </span>
           </div>
-          <h1 className="text-xl font-black text-gray-900 mt-1">{selectedStore}</h1>
+          <h1 className="text-xl font-black text-black! mt-1">{selectedStore}</h1>
         </div>
 
         <button
