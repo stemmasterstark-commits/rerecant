@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../services/supabase";
 
 const ADMIN_EMAILS = [
-  "stemmastersstark@gmail.com",
+  "sanjaykrishp2005@gmail.com",
   "stemmasterstark@gmail.com",
+  "kdsaif570@gmail.com"
 ];
 
 export default function Home({ setActivePage, user }) {
