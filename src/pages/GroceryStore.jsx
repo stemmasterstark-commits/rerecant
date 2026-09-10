@@ -8,8 +8,9 @@ const STORE_MAP = {
 };
 
 const ADMIN_EMAILS = [
-  "stemmastersstark@gmail.com",
+  "sanjaykrishp2005@gmail.com",
   "stemmasterstark@gmail.com",
+  "kdsaif570@gmail.com"
 ];
 
 export default function GroceryStore({ cartItems = [], setCartItems, user }) {

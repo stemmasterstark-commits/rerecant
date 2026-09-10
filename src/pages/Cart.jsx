@@ -67,21 +67,20 @@ export default function Cart({
       image_url: item.image_url || null,
     }));
 
-    // Insert order into Supabase with store_location tag
-    const { error: orderError } = await supabase.from("orders").insert([
-      {
-        user_id: currentUser.id,
-        items: orderItems,
-        total_amount: totalAmount,
-        payment_id: paymentId,
-        status: "Paid",
-        store_location: store, // Tagged strictly with current store
-      },
-    ]);
+    // Execute atomic Supabase RPC function (inserts order & updates stock together)
+    const { data, error } = await supabase.rpc("place_order_and_update_stock", {
+      p_user_id: currentUser.id,
+      p_user_email: currentUser.email,
+      p_items: orderItems,
+      p_total_amount: totalAmount,
+      p_store_location: store,
+      p_payment_id: paymentId,
+    });
 
-    if (orderError) {
-      console.error("Order insertion error:", orderError);
-      alert("Payment processed, but order logging failed: " + orderError.message);
+    if (error || (data && !data.success)) {
+      const errMsg = error?.message || data?.error || "Unknown error";
+      console.error("Order insertion error:", errMsg);
+      alert("Payment was successful, but order logging failed: " + errMsg);
       return;
     }
 
@@ -98,12 +97,23 @@ export default function Cart({
     } = await supabase.auth.getSession();
     const activeUser = session?.user || user;
 
+    // 🔒 GUARD 1: User Not Logged In
     if (!activeUser) {
       setLoading(false);
-      if (onOpenAuth) onOpenAuth(); // Open login modal if guest attempts checkout
+      if (onOpenAuth) onOpenAuth(); // Open login modal
       return;
     }
 
+    // 🔒 GUARD 2: Email Verification Guard
+    if (!activeUser.email_confirmed_at) {
+      alert(
+        "Your email address is not verified yet. Please check your inbox and verify your email to place an order."
+      );
+      setLoading(false);
+      return;
+    }
+
+    // 🔒 GUARD 3: No Dark Store Selected
     if (!activeStore) {
       alert("Please select a store location before checking out.");
       setLoading(false);
@@ -111,6 +121,7 @@ export default function Cart({
       return;
     }
 
+    // 🔒 GUARD 4: Razorpay SDK Available
     if (typeof window.Razorpay === "undefined") {
       alert("Razorpay SDK not loaded. Please refresh the page.");
       setLoading(false);
@@ -150,6 +161,7 @@ export default function Cart({
             );
           } catch (err) {
             console.error("Order completion failed:", err);
+            alert("Order processing failed: " + err.message);
           } finally {
             setLoading(false);
           }
@@ -183,7 +195,7 @@ export default function Cart({
     }
   };
 
-  // 🔒 Guard: If no dark store is selected
+  // Guard: If no dark store is selected
   if (!activeStore && cartItems.length > 0) {
     return (
       <div className="max-w-md mx-auto py-16 text-center space-y-4">
@@ -206,7 +218,7 @@ export default function Cart({
     <div className="max-w-3xl mx-auto py-6 space-y-6 relative px-4">
       <div className="flex justify-between items-center border-b border-gray-100 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-black!">Your Cart</h1>
+          <h1 className="text-2xl font-black text-black">Your Cart</h1>
           <p className="text-xs text-gray-500 font-medium">
             Fulfilling from:{" "}
             <span className="font-bold text-emerald-600">

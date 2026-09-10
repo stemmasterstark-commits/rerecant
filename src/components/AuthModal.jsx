@@ -40,15 +40,38 @@ export default function AuthModal({ isOpen, onClose }) {
     try {
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        
+        if (error) {
+          // Catch unverified email logins specifically
+          if (error.message.toLowerCase().includes("email not confirmed")) {
+            throw new Error("Your email address is not verified yet. Please check your inbox and verify your email before logging in.");
+          }
+          throw error;
+        }
+
         onClose();
       } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        setMessage({
-          text: "Account created! You can log in or check your email if confirmation is enabled.",
-          type: "success",
+        const { data, error } = await supabase.auth.signUp({ 
+          email, 
+          password 
         });
+
+        if (error) throw error;
+
+        // If identities is empty, the user already exists
+        if (data?.user?.identities?.length === 0) {
+          setMessage({
+            text: "An account with this email already exists. Please log in instead.",
+            type: "error",
+          });
+        } else {
+          setMessage({
+            text: "Account created! A confirmation link has been sent to your email. Please verify it before logging in.",
+            type: "success",
+          });
+          setEmail("");
+          setPassword("");
+        }
       } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}`,
@@ -66,7 +89,6 @@ export default function AuthModal({ isOpen, onClose }) {
           type: "success",
         });
         setTimeout(() => {
-          // Clean hash from URL and close modal
           window.history.replaceState(null, "", window.location.pathname);
           setMode("login");
           onClose();
@@ -89,6 +111,7 @@ export default function AuthModal({ isOpen, onClose }) {
       window.history.replaceState(null, "", window.location.pathname);
       setMode("login");
     }
+    setMessage({ text: "", type: "" });
     onClose();
   };
 
@@ -99,7 +122,7 @@ export default function AuthModal({ isOpen, onClose }) {
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-lg"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 font-bold text-lg cursor-pointer"
         >
           ✕
         </button>
@@ -113,7 +136,7 @@ export default function AuthModal({ isOpen, onClose }) {
         </h2>
         <p className="text-xs text-gray-500 text-center mb-6">
           {mode === "login" && "Log in to continue your checkout"}
-          {mode === "signup" && "Sign up to order from ReReCant"}
+          {mode === "signup" && "Sign up with a valid email to order from ReReCant"}
           {mode === "forgot" && "Enter your email to receive a recovery link"}
           {mode === "reset_password" && "Enter your new password below"}
         </p>
@@ -161,7 +184,7 @@ export default function AuthModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={() => switchMode("forgot")}
-                    className="text-xs text-emerald-600 hover:underline font-semibold"
+                    className="text-xs text-emerald-600 hover:underline font-semibold cursor-pointer"
                   >
                     Forgot Password?
                   </button>
@@ -182,7 +205,7 @@ export default function AuthModal({ isOpen, onClose }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-100 transition-all text-sm disabled:opacity-50"
+            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-100 transition-all text-sm disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               "Processing..."
@@ -205,7 +228,7 @@ export default function AuthModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => switchMode("login")}
-                className="text-xs text-emerald-600 hover:underline font-semibold"
+                className="text-xs text-emerald-600 hover:underline font-semibold cursor-pointer"
               >
                 ← Back to Login
               </button>
@@ -213,7 +236,7 @@ export default function AuthModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => switchMode(mode === "login" ? "signup" : "login")}
-                className="text-xs text-emerald-600 hover:underline font-semibold"
+                className="text-xs text-emerald-600 hover:underline font-semibold cursor-pointer"
               >
                 {mode === "signup"
                   ? "Already have an account? Log In"
